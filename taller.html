@@ -1,0 +1,42 @@
+<!doctype html><meta charset="utf-8"><title>CEBA · taller</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}
+#wrap{position:absolute;inset:0;display:grid;place-items:center}
+#box{position:relative;aspect-ratio:16/9;width:min(100vw,177.78vh)}
+canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}</style>
+<div id="wrap"><div id="box"><canvas id="gl"></canvas><canvas id="ui" width="320" height="180"></canvas></div></div>
+<script type="module">
+import { THREE, makeRenderer, makeSky, U, W, H } from './src/gfx.js';
+import { Tex } from './src/px.js';
+import { MODELS } from './src/art/index.js';
+const q = new URLSearchParams(location.search);
+const name = q.get('m') || 'ceba', yaw = q.get('yaw'), bg = +(q.get('bg') || 12);
+const r = makeRenderer(document.getElementById('gl'));
+const scene = new THREE.Scene(); const sky = makeSky(); sky.material.uniforms.uC.value = [bg, bg, bg, bg]; scene.add(sky);
+const cam = new THREE.PerspectiveCamera(30, 150 / 96, 0.1, 100);
+U.uFogR.value.set(500, 900);
+const M = MODELS[name](); const obj = M.root || M.g || M; scene.add(obj);
+const box = new THREE.Box3().setFromObject(obj), c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3()).length();
+const dist = +(q.get('d') || 0) || s * 1.25;
+const ui = new Tex(W, H), ctx = document.getElementById('ui').getContext('2d'), img = new ImageData(W, H);
+const sheet = M.t || (M.tex && M.tex.userData.src);
+let t = 0;
+function frame(dt) {
+  t += dt; U.uTime.value = t;
+  const a = yaw != null ? +yaw : t * 0.9;
+  cam.position.set(c.x + Math.sin(a) * dist, c.y + dist * 0.38, c.z + Math.cos(a) * dist); cam.lookAt(c);
+  if (M.tick) M.tick(dt, t);
+  r.setViewport(0, 0, W, H); r.setScissorTest(false); r.setClearColor(0x000000); r.clear();
+  r.setViewport(8, H - 8 - 9 - 96, 150, 96); r.setScissor(8, H - 8 - 9 - 96, 150, 96); r.setScissorTest(true);
+  r.render(scene, cam);
+  ui.clear();
+  ui.rect(8, 8, 150, 9, 8); ui.text('PICOCEBA', 20, 10, 7); ui.rect(11, 10, 5, 1, 7); ui.rect(11, 12, 5, 1, 7); ui.rect(11, 14, 5, 1, 7);
+  ui.rect(8, 113, 150, 60, 0); ui.rect(8, 164, 150, 9, 8); ui.text(name, 20, 166, 7); ui.text('+', 12, 166, 7);
+  if (sheet) { ui.rect(170, 26, 130, 130, 1); ui.blit(sheet, 0, 0, 128, 128, 171, 27); ui.text('HOJA DE TEXTURA 128×128', 171, 160, 6); }
+  ctx.putImageData(new ImageData(ui.rgba(img.data), W, H), 0, 0);
+}
+window.step = n => { for (let i = 0; i < n; i++) frame(1 / 60); };
+window.M = M;
+if (yaw == null && !q.has('manual')) { let last = performance.now(); const loop = n => { frame(Math.min(.05, (n - last) / 1000)); last = n; requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
+else frame(0);
+window.ready = true;
+</script>
