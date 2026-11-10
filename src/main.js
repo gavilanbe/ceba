@@ -77,7 +77,7 @@ G.onDeath = () => run(function* () {
   yield* wait(1.3); G.lock++;
   yield* G.fade(1, 0.9, 0); G.save.deaths++;
   let t0 = 0, fill = 0; const max = G.save.maxLayers;
-  UI.over = (t, dt) => {
+  UI.top = (t, dt) => {
     t0 += dt; onionGauge(t, W / 2, 70, Math.floor(fill), max, { core: 6, th: 6 });
     t.textC(TXT.MUERTE, W / 2, 112, 7); if (t0 > 1.4 && fill === 0 && Math.floor(t0 * 2) % 2) t.textC('ESPACIO: VOLVER A BROTAR', W / 2, 128, 13);
   };
@@ -88,7 +88,7 @@ G.onDeath = () => run(function* () {
   player.crack = false; player.setLayers(max, true); player.inv = 0; player.rollA = 0; player.set('free'); player.faceHold = 0;
   G.save.layers = max; G.save.crack = false;
   G.load(G.save.spawn.level, G.save.spawn.at); G.level.resumeMusic();
-  UI.over = null; G.lock--; yield* G.fade(0, 0.7, 0); G.areaTitle(G.level.title, G.level.sub);
+  UI.top = null; G.lock--; yield* G.fade(0, 0.7, 0); G.areaTitle(G.level.title, G.level.sub);
 });
 
 // ───────── bucle ─────────
@@ -185,13 +185,32 @@ window.game = {
   tp(x, y, z, yaw) { player.place(x, y, z, yaw ?? player.yaw); cam.reset((yaw ?? player.yaw) + Math.PI); },
   // salta el título: partida nueva directa en un nivel
   boot(level = 'villa', at, flags = {}, items = {}) {
-    G.scripts.length = 0; G.lock = 0; G.cine = false; UI.over = null; UI.S.iris = null; UI.S.fade = 0; UI.under = null;
+    G.scripts.length = 0; G.lock = 0; G.cine = false; UI.over = null; UI.top = null; UI.S.iris = null; UI.S.fade = 0; UI.under = null;
     G.save = newSave(); Object.assign(G.save.flags, { intro: 1, ...flags }); Object.assign(G.save.items, items);
     if (items.mondador) G.save.c[0] = 'mondador'; if (items.capa) G.save.maxLayers = 4;
     player.maxLayers = G.save.maxLayers; player.crack = false; player.setLayers(G.save.maxLayers, true);
     Title.leave(); G.mode = 'play'; const L = G.load(level, at); this.step(2); return Object.keys(L.spawn);
   },
   say(k) { run(function* () { yield* G.say(null, k); }); },
+  // avanza hasta que se cumpla la condición (o se agoten los fotogramas); devuelve cuántos ha dado
+  until(f, max = 3000) { let n = 0; while (n < max && !f()) { this.step(1); n++; } return n; },
+  // va pulsando A para pasar diálogos hasta que se cumpla la condición
+  adv(f, max = 4000) { let n = 0; while (n < max && !f()) { if (n % 14 === 0) input.key('Space', true); if (n % 14 === 2) input.key('Space', false); this.step(1); n++; } input.key('Space', false); return n; },
+  // empuja en una dirección del mundo durante n fotogramas
+  dir(dx, dz, n = 60) { for (let i = 0; i < n; i++) { const cy = cam.yaw, ax = Math.cos(cy) * dx - Math.sin(cy) * dz, ay = Math.sin(cy) * dx + Math.cos(cy) * dz; input.down.right = ax > 0.3; input.down.left = ax < -0.3; input.down.down = ay > 0.3; input.down.up = ay < -0.3; this.step(1); } input.down.right = input.down.left = input.down.up = input.down.down = false; this.step(1); },
+  // pelea sola: va hacia la plaga más cercana y da tajos
+  bot(max = 600, f = () => false) {
+    let n = 0;
+    while (n < max && !f()) {
+      let best = null, bd = 1e9; for (const e of G.level.ents) { if (e.dead || !e.enemy) continue; const d = Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z); if (d < bd) { bd = d; best = e; } }
+      input.down.right = input.down.left = input.down.up = input.down.down = false;
+      if (best) { const dx = best.pos.x - player.pos.x, dz = best.pos.z - player.pos.z, d = bd || 1, cy = cam.yaw, ax = Math.cos(cy) * dx / d - Math.sin(cy) * dz / d, ay = Math.sin(cy) * dx / d + Math.cos(cy) * dz / d; if (d > 1.1) { input.down.right = ax > 0.3; input.down.left = ax < -0.3; input.down.down = ay > 0.3; input.down.up = ay < -0.3; } if (d < 1.9 && n % 9 === 0) input.pressed.b = true; }
+      this.step(1); n++;
+    }
+    input.down.right = input.down.left = input.down.up = input.down.down = false; return n;
+  },
+  // camina hacia un punto con la cámara actual
+  walk(x, z, max = 600) { let n = 0; while (n < max) { const dx = x - player.pos.x, dz = z - player.pos.z, d = Math.hypot(dx, dz); if (d < 0.35) break; const cy = cam.yaw, ax = Math.cos(cy) * dx / d - Math.sin(cy) * dz / d, ay = Math.sin(cy) * dx / d + Math.cos(cy) * dz / d; input.down.right = ax > 0.3; input.down.left = ax < -0.3; input.down.down = ay > 0.3; input.down.up = ay < -0.3; this.step(1); n++; } input.down.right = input.down.left = input.down.up = input.down.down = false; this.step(2); return n; },
   state() { return { mode: G.mode, lock: G.lock, pos: player.pos.toArray().map(v => +v.toFixed(2)), st: player.state, layers: player.layers, crack: player.crack, tears: G.save.tears, flags: G.save.flags, action: G.action, scripts: G.scripts.length, ents: G.level ? G.level.ents.length : 0 }; },
 };
 window.ready = true;

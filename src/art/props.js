@@ -252,6 +252,6 @@ export function makeSkyCard(rect, w, h) {
   const me = new MB().card(w, h, rect, { y: -h / 2 }).mesh(m); me.renderOrder = -50; return me;
 }
 export function makeBeam(h = 6, r = 0.6) {
-  const m = mat(sheetB().tex, { unlit: true, double: true, depthWrite: false, noFog: true });
-  const me = new MB().lathe([[r, 0], [r * 0.7, h]], 8, [88, 0, 16, 32]).mesh(m); return me;
+  const m = mat(sheetB().tex, { unlit: true, depthWrite: false, noFog: true });
+  const me = new MB().lathe([[r, 0], [r * 0.7, h]], 8, [88, 0, 16, 32]).mesh(m); me.renderOrder = 6; return me;
 }

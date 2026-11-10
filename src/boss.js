@@ -39,7 +39,7 @@ export class Tapona extends Ent {
   set(s, t = 0) { this.st = s; this.stT = t; this.e = 0; }
   wake() { this.set('wake', 1.2); audio.sfx('slime'); this.sqV = 6; }
   roar() { audio.sfx('bossRoar'); fx.shake(0.3, 0.7); this.sqV = 10; this.mouth = 0.8; fx.ring(this.pos.x, 0.05, this.pos.z, { r0: 1, r1: 9, t: 0.8, c: 14, th: 0.4 }); }
-  start() { this.set('idle', 1.4); this.targetable = true; }
+  start() { this.set('idle', 2.4); this.targetable = true; }
   hit(o) {
     if (this.st === 'dead' || this.st === 'sleep' || this.st === 'wake') return false;
     if (this.st !== 'cry') { this.sqV = -4; G.hintOnce('goma', 'H_GOMA'); return 'bounce'; }
@@ -138,7 +138,7 @@ export class Tapona extends Ent {
     if (this.st !== 'dead' && this.st !== 'sleep') {
       const ox = this.pos.x, oz = this.pos.z;
       this.pos.x += this.vel.x * dt; this.pos.z += this.vel.z * dt;
-      const cx = clamp(this.pos.x, -8.6, 8.6), cz = clamp(this.pos.z, -69.6, -52.8);
+      const cx = clamp(this.pos.x, -8.4, 8.4), cz = clamp(this.pos.z, -69.4, -54.6);
       if ((cx !== this.pos.x || cz !== this.pos.z) && this.st === 'charge') this.hitWall = true;
       this.pos.x = cx; this.pos.z = cz;
       const sp = Math.hypot(this.vel.x, this.vel.z);

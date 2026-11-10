@@ -80,6 +80,7 @@ export function tileMat(kind = 'solid') {
   if (_m[kind]) return _m[kind];
   const o = { tiled: true, cut: kind === 'solid' || kind === 'cut' };
   if (kind === 'water') { o.wave = 0.03; o.unlit = false; }
+  if (kind === 'waterGlow') { o.wave = 0.03; o.unlit = true; }
   if (kind === 'cut') o.double = true;
   if (kind === 'decal') { o.offset = 2; o.depthWrite = false; }
   return (_m[kind] = mat(tilesTex(), o));

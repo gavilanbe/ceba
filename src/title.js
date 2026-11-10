@@ -146,7 +146,7 @@ export const Title = {
       yield* all(G.fade(0, 0.6, 0), G.cam.to(b[0], b[1], b[2], b[3], b[4], b[5], 7, 36, x => x), Title.card(text));
       yield* G.fade(1, 0.5, 0);
     };
-    yield* shot(TXT.INTRO[1], [3.6, 1.9, 0.4, 0, 2.3, -5.2], [2.6, 2.3, -0.6, 0, 2.4, -5.2], true);
+    yield* shot(TXT.INTRO[1], [0.6, 1.7, 1.6, -4.2, 2.2, -4.2], [-0.4, 2.2, 0.4, -4.2, 2.3, -4.2], true);
     yield* shot(TXT.INTRO[2], [-11, 5.5, 14, 0, 0.8, -4], [-8, 4.4, 11, 0, 0.8, -4], true);
     yield* shot(TXT.INTRO[3], [-13.8, 0.9, 12.2, -16, 0.35, 10], [-14.4, 0.8, 11.6, -16, 0.35, 10], true);
     yield* shot(TXT.INTRO[4], [5, 3.4, 27, 0, -0.8, 18], [3, 2.4, 25, 0, -0.9, 16], false);

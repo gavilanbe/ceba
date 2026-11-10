@@ -163,7 +163,13 @@ export class Enemy extends Ent {
       p.hurt(this.dmg, this.pos.x, this.pos.z, { heavy: this.heavy });
     }
   }
-  toPlayer() { const p = G.player; return { dx: p.pos.x - this.pos.x, dz: p.pos.z - this.pos.z, d: Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z), dy: p.pos.y - this.pos.y }; }
+  toPlayer() {
+    const p = G.player, q = { dx: p.pos.x - this.pos.x, dz: p.pos.z - this.pos.z, d: Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z), dy: p.pos.y - this.pos.y };
+    // en la mazmorra solo persiguen dentro de su sala
+    if (this.room === undefined) this.room = (this.level.rooms || []).find(r => this.home.x >= r.x0 && this.home.x <= r.x1 && this.home.z >= r.z0 && this.home.z <= r.z1) || null;
+    if (this.room && (p.pos.x < this.room.x0 || p.pos.x > this.room.x1 || p.pos.z < this.room.z0 || p.pos.z > this.room.z1)) q.d = 999;
+    return q;
+  }
 }
 
 // pulgón: salta en manada

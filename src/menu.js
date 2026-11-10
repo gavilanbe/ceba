@@ -121,7 +121,7 @@ export const Menu = {
       t.rect(PX + 6, dy2 - 4, PW - 12, 1, 9);
       t.rrect(x0, dy2, 58, 58, 4, 2);
       if (it) {
-        if (live) { t.erase(x0 + 1, dy2 + 1, 56, 56); if (S.viewKey !== 'i' + id) { S.viewKey = 'i' + id; setView(it.make, { zoom: it.zoom, sky: [15, 15, 9, 9] }); } const v = UI.view; if (v) { v.x = x0 + 1; v.y = dy2 + 1; v.w = 56; v.h = 56; v.spin.rotation.y += dt * 1.8; } }
+        if (live) { t.erase(x0 + 1, dy2 + 1, 56, 56); if (S.viewKey !== 'i' + id) { S.viewKey = 'i' + id; setView(it.make, { zoom: (it.zoom || 1) * 0.72, sky: [15, 15, 9, 9] }); } const v = UI.view; if (v) { v.x = x0 + 1; v.y = dy2 + 1; v.w = 56; v.h = 56; v.spin.rotation.y += dt * 1.8; } }
         else t.rect(x0 + 1, dy2 + 1, 56, 56, 15);
         t.text(it.name, x0 + 64, dy2 + 2, 8); wrap(it.desc, 27).forEach((l, i) => t.text(l, x0 + 64, dy2 + 12 + i * 7, 1));
         if (it.c) { t.text('U · I · O: ASIGNAR', x0 + 64, dy2 + 50, 4); }
@@ -139,21 +139,21 @@ export const Menu = {
       t.rect(mx - 47, my + 1, 95, 1, 0); t.rect(mx - 1, my - 62, 2, 14, 3); t.rect(mx + 1, my - 60, 4, 2, 11);
       for (let i = 0; i < 7; i++) { const known = i === 0 || (i === 1 && flag('cisterna')) || (i === 6 && flag('jefe')); const yy = y0 + 8 + i * 7; t.text(['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'][i], x0 + 100, yy, i === here ? 8 : 4); t.text(known ? LAYERS[i] : '? ? ?', x0 + 116, yy, i === here ? 8 : known ? 1 : 9); }
       // plano del sitio
-      const bx = x0 + 100, by = y0 + 62, bw = 74, bh = 70; t.rrect(bx, by, bw, bh, 4, 2); t.rect(bx + 1, by + 1, bw - 2, bh - 2, 1);
+      const bx = x0 + 100, by = y0 + 60, bw = 74, bh = 76; t.rrect(bx, by, bw, bh, 4, 2); t.rect(bx + 1, by + 1, bw - 2, bh - 2, 1);
       const L = G.level; if (L) {
         t.setClip(bx + 1, by + 1, bw - 2, bh - 2);
         if (L.name === 'cisterna') {
-          const sc = 0.88, ox2 = bx + 36, oz2 = by + 66; const X = x => Math.round(ox2 + x * sc), Z = z => Math.round(oz2 + z * sc);
+          const sc = 0.88, ox2 = bx + 36, oz2 = by + 73; const X = x => Math.round(ox2 + x * sc), Z = z => Math.round(oz2 + z * sc);
           for (const r of L.rooms) { if (!sv.rooms[r.id]) continue; t.rect(X(r.x0), Z(r.z0), Math.round((r.x1 - r.x0) * sc), Math.round((r.z1 - r.z0) * sc), 2); t.box(X(r.x0), Z(r.z0), Math.round((r.x1 - r.x0) * sc), Math.round((r.z1 - r.z0) * sc), 14); }
           if (sv.rooms.r2) { t.rect(X(-9), Z(-41), Math.round(18 * sc), Math.round(13 * sc), flag('agua') ? 12 : 0); }
           if (Math.floor(S.t * 4) % 2) t.rect(X(p.pos.x) - 1, Z(p.pos.z) - 1, 3, 3, 10);
         } else {
-          const X = x => Math.round(bx + 37 + x * 1.0), Z = z => Math.round(by + 35 + z * 1.05);
+          const X = x => Math.round(bx + 37 + x * 1.0), Z = z => Math.round(by + 42 + z * 1.05);
           t.rect(X(-34), Z(-30), 68, 63, 3); t.rect(X(-7), Z(-7), 14, 15, 6); t.rect(X(20), Z(-18), 14, 28, 11); t.rect(X(24), Z(-18), 10, 13, 10); t.rect(X(-1), Z(2), 2, 14, flag('jefe') ? 12 : 5); t.rect(X(-5), Z(16), 10, 8, flag('jefe') ? 12 : 5);
           t.rect(X(0) - 1, Z(0) - 1, 3, 3, 13); t.rect(X(0) - 1, Z(-11) - 1, 3, 3, 7); t.rect(X(30) - 1, Z(-13) - 1, 3, 3, 4); t.rect(X(-16) - 1, Z(10) - 1, 3, 3, 4); t.rect(X(12) - 1, Z(5) - 1, 3, 3, 14);
           if (Math.floor(S.t * 4) % 2) t.rect(X(p.pos.x) - 1, Z(p.pos.z) - 1, 3, 3, 8);
         }
-        t.setClip(null); t.text(L.title, bx + 3, by + bh + 3, 4);
+        t.setClip(null); t.rect(bx + 1, by + 1, bw - 2, 8, 4); t.text(L.title, bx + 4, by + 3, 15);
       }
     } else if (pg === 2) {
       // ── cuaderno: el ecosistema ──

@@ -17,7 +17,7 @@ export class Cam {
   }
   reset(yaw) { const p = G.player; if (yaw != null) this.yaw = yaw; this.at.set(p.pos.x, p.pos.y + 0.9, p.pos.z); this.d = this.dist = this.baseDist; this.pitch = this.basePitch; this.shot = null; this.blend = 0; this.place(); }
   // plano fijo de cine
-  cut(px, py, pz, lx, ly, lz, fov = 40) { this.shot = { p: new THREE.Vector3(px, py, pz), l: new THREE.Vector3(lx, ly, lz), fov }; this.blend = 0; }
+  cut(px, py, pz, lx, ly, lz, fov = 40) { this.shot = { p: new THREE.Vector3(px, py, pz), l: new THREE.Vector3(lx, ly, lz), fov }; this.blend = 0; this.cam.position.set(px, py, pz); this.look.set(lx, ly, lz); this.fov = fov; }
   // generador: viaja hasta un plano
   *to(px, py, pz, lx, ly, lz, t = 1, fov = 40, ez = ease.io) {
     const p0 = this.cam.position.clone(), l0 = this.look.clone(), f0 = this.fov;

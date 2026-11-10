@@ -82,7 +82,8 @@ const S = {
 export const UI = {
   S,
   onCrack() { S.crackT = 0.6; S.hurtT = 0.35; },
-  onLayer(from, to) { S.layerFx.push({ t: 0, i: from }); S.hurtT = 0.5; },
+  onLayer(from, to) { S.layerFx.push({ t: 0, i: from }); },
+  onHurt() { S.hurtT = 0.5; },
   onHeal() { S.healT = 0.5; },
   onTears() { S.tearBump = 0.25; },
   view: null,
@@ -90,7 +91,7 @@ export const UI = {
 G.ui = UI;
 
 // aviso de Candela (no bloquea)
-G.hint = (key, dur = 5.5) => { const txt = TXT[key] || key; S.hint = { lines: wrap(txt, 40), t: 0, dur }; if (G.candela) G.candela.call(); };
+G.hint = (key, dur = 5.5) => { let txt = TXT[key] || key; if (Array.isArray(txt)) txt = txt.join(' '); txt = txt.replace(/@[^|]*\|/g, ''); S.hint = { lines: wrap(txt, 40), t: 0, dur }; if (G.candela) G.candela.call(); };
 G.hintOnce = (id, key) => { if (flag('h_' + id)) return; flag('h_' + id, 1); G.hint(key); };
 G.toast = (text, icon) => { S.toasts.push({ text, icon, t: 0 }); audio.sfx('select'); };
 G.areaTitle = (title, sub) => { S.title = { title, sub, t: 0 }; };
@@ -144,7 +145,7 @@ export function setView(make, o = {}) {
   const b = new THREE.Box3().setFromObject(viewObj), c = b.getCenter(new THREE.Vector3()), s = b.getSize(new THREE.Vector3()).length();
   viewObj.position.sub(c);
   viewSky.material.uniforms.uC.value = o.sky || [12, 12, 12, 12];
-  UI.view = { scene: viewScene, cam: viewCam, spin: viewSpin, dist: s * (o.zoom || 1.15), x: 0, y: 0, w: 10, h: 10, M, tilt: o.tilt ?? 0.35 };
+  UI.view = { scene: viewScene, cam: viewCam, spin: viewSpin, dist: s * (o.zoom || 1.0) * 1.6, x: 0, y: 0, w: 10, h: 10, M, tilt: o.tilt ?? 0.35 };
   return M;
 }
 G.giveItem = function* (id, o = {}) {
@@ -322,5 +323,6 @@ export function drawUI(dt) {
     }
   }
   if (S.fade > 0.01) { const lv = S.fade * 17; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (BAYER[(y & 3) * 4 + (x & 3)] < lv - 0.5) t.d[y * W + x] = S.fadeC; }
+  if (UI.top) UI.top(t, dt);
 }
 export { plain, drawRich, viewScene };

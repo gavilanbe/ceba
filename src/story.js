@@ -139,13 +139,13 @@ export function bancalViejo(b, p) {
     yield* G.say(null, 'BROTAR_1');
     const dur = audio.jingle('sprout');
     // el sol aprieta
-    const camGo = G.cam.to(32.2, 3.7, -11.4, 30.5, 4.3, -13.5, dur * 0.8, 28);
+    const camGo = G.cam.to(33.0, 4.4, -10.6, 30.5, 3.85, -13.5, dur * 0.8, 30);
     let e = 0, stage = 0;
     m.setHoja(true); const parts = [m.leaves[1].g, m.leaves[2].g, m.hojaBack]; for (const q of parts) q.scale.setScalar(0.001);
     const grow = [];
     while (e < dur) {
       const dt = yield; e += dt; camGo.next(dt);
-      L.beam.material.uniforms.uHide.value = lerp(0.72, 0.3, clamp(e / (dur * 0.6)));
+      L.beam.material.uniforms.uHide.value = lerp(0.82, 0.6, clamp(e / (dur * 0.6)));
       if (rnd() < 0.5) fx.one(rnd() < 0.5 ? P.sqY : P.sqG, p.pos.x + (rnd() - 0.5) * 2.2, 3.3, p.pos.z + (rnd() - 0.5) * 2.2, { vy: 1.2 + rnd() * 1.5, g: -0.6, life: 1.1, size: 0.14 });
       p.sqV += Math.sin(e * 20) * 0.6 * clamp(e / dur);
       const marks = [dur * 0.42, dur * 0.55, dur * 0.68];
@@ -161,7 +161,7 @@ export function bancalViejo(b, p) {
     fx.ring(p.pos.x, 3.25, p.pos.z, { r1: 3, t: 0.5, c: 11 }); fx.burst(P.star, p.pos.x, p.pos.y + 1.6, p.pos.z, 10, { speed: 2.5, up: 2, g: 3, life: 0.7, size: 0.4 });
     yield* wait(0.2);
     yield* G.giveItem('hoja');
-    m.draw(false); L.beam.material.uniforms.uHide.value = 0.72;
+    m.draw(false); L.beam.material.uniforms.uHide.value = 0.82;
     G.save.spawn = { level: 'villa', at: 'viejo' }; writeSave();
     cineOff(p, 0.9); audio.music('hill', { fade: 1 });
   });
@@ -184,7 +184,7 @@ export function* cisternaEnter(L, from) {
   G.areaTitle(L.title, L.sub);
 }
 export function planidera(st) {
-  const L = G.level; seen('planidera');
+  const L = G.level; seen('planidera'); L.light(st.pos.x, 0.5, st.pos.z, 7);
   if (!(L.stA.crying && L.stB.crying)) { G.hint('CIS_UNA', 3); return; }
   if (flag('agua')) return;
   flag('agua', 1);
@@ -223,7 +223,7 @@ export function bossStart(p) {
 // atrezo del desagüe ya vencido
 export function afterBossProps(L, fresh = false) {
   L.block(-0.9, 0, -66.9, 0.9, 0.08, -65.1, { top: TI.moho, noCol: true });
-  const ch = L.add(new Chest(0, 0, -60, 0, 'capa', { big: true, key: 'cofreCapa', hidden: fresh })); L.capaChest = ch;
+  const ch = L.add(new Chest(0, 0, -56.5, 0, 'capa', { big: true, key: 'cofreCapa', hidden: fresh })); L.capaChest = ch;
   const beam = A.makeBeam(12, 1.0); beam.position.set(0, 0, -69.5); beam.material.uniforms.uHide.value = 0.5; L.group.add(beam); L.light(0, 2, -69.5, 6);
   L.add(new Salida(0, 0, -69.5)); if (fresh) L.finishExtra && L.finishExtra();
 }
@@ -257,7 +257,7 @@ export function* bossEnd(L, b) {
   fx.ring(0, 0.1, -66, { r1: 1.6, t: 0.8, c: 3 }); audio.sfx('slime');
   yield* wait(0.6);
   yield* G.say('CANDELA', TXT.JEFE_FIN.slice(1), { voice: 2.1 }); seen('mildiu');
-  yield* G.cam.to(0, 3.4, -54.5, 0, 0.6, -60, 0.8, 38);
+  yield* G.cam.to(2.6, 2.6, -52.4, 0, 0.6, -56.5, 0.8, 38);
   L.capaChest.appear(); yield* wait(1.0);
   L.arenaBars.set(true);
   cineOff(p, 0.8); audio.music('calm', { fade: 1 }); writeSave();
@@ -265,7 +265,7 @@ export function* bossEnd(L, b) {
 // lo mismo que afterBossProps pero con el nivel ya montado (malla aparte para el sello)
 function afterBossPropsLive(L) {
   const seal = A.tileBox(1.8, 0.08, 1.8, { all: TI.moho }).mesh(A.tileModelMat()); seal.position.set(0, 0, -66); L.group.add(seal);
-  const ch = L.add(new Chest(0, 0, -60, 0, 'capa', { big: true, key: 'cofreCapa', hidden: true })); L.capaChest = ch;
+  const ch = L.add(new Chest(0, 0, -56.5, 0, 'capa', { big: true, key: 'cofreCapa', hidden: true })); L.capaChest = ch;
   const beam = A.makeBeam(12, 1.0); beam.position.set(0, 0, -69.5); beam.material.uniforms.uHide.value = 0.5; L.group.add(beam); L.light(0, 2, -69.5, 6);
   L.add(new Salida(0, 0, -69.5));
 }
@@ -293,10 +293,10 @@ function* ending(L) {
   // tarjeta final
   yield* G.cam.to(0, 16, 30, 0, 2, -4, 3.5, 40);
   yield* G.fade(1, 1.2, 0);
-  let t0 = 0; UI.over = (t, dt) => { t0 += dt; const k = clamp(t0 / 1); t.textC(TXT.FIN[0], W / 2, 62, 6); if (t0 > 0.8) t.textC(TXT.FIN[1], W / 2, 76, 9, 3); if (t0 > 1.8) { t.textC(TXT.FIN[2], W / 2, 108, 13); for (let i = 0; i < 3; i++) t.arc(W / 2, 200, 100 - i * 6, 101 - i * 6, -0.9, 0.9, [9, 14, 7][i]); } if (t0 > 3 && Math.floor(t0 * 2) % 2) t.textC('PULSA ESPACIO', W / 2, 140, 5); };
+  let t0 = 0; UI.top = (t, dt) => { t0 += dt; const k = clamp(t0 / 1); t.textC(TXT.FIN[0], W / 2, 62, 6); if (t0 > 0.8) t.textC(TXT.FIN[1], W / 2, 76, 9, 3); if (t0 > 1.8) { t.textC(TXT.FIN[2], W / 2, 108, 13); for (let i = 0; i < 3; i++) t.arc(W / 2, 200, 100 - i * 6, 101 - i * 6, -0.9, 0.9, [9, 14, 7][i]); } if (t0 > 3 && Math.floor(t0 * 2) % 2) t.textC('PULSA ESPACIO', W / 2, 140, 5); };
   audio.jingle('capa'); yield* wait(3);
   for (;;) { yield; if (G.input.hit('a') || G.input.hit('start')) break; }
-  UI.over = null; flag('fin', 1); G.save.spawn = { level: 'villa', at: 'plaza' }; writeSave();
+  UI.top = null; flag('fin', 1); G.save.spawn = { level: 'villa', at: 'plaza' }; writeSave();
   G.cam.yaw = 0; cineOff(p, 0.01); p.faceOv = null;
   yield* G.fade(0, 0.8, 0);
   G.areaTitle(L.title, 'EL POZO VUELVE A LLORAR');

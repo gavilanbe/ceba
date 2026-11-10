@@ -80,7 +80,7 @@ export const TXT = {
   // ── cisterna ──
   CIS_LLEGADA: ['@CANDELA|QUÉ OSCURO. MENOS MAL QUE HAS TRAÍDO LUZ. O SEA, A MÍ.', '@CANDELA|ESTO ES LA *TÚNICA*, LA SEGUNDA CAPA DEL MUNDO. AQUÍ TODO ES MORADO Y HUELE A SÓTANO.'],
   CIS_LLORAN: ['@CANDELA|¡LLORAN! ¡LAS DOS! ¡Y EL AGUA SUBE! ...CEBA, ERES UNA CEBOLLA DE VERDAD.'],
-  CIS_UNA: ['@CANDELA|¡ESA LLORA! FALTA LA OTRA.'],
+  CIS_UNA: '¡ESA LLORA! FALTA LA OTRA.',
   JEFE_1: ['@CANDELA|ESE CORCHO... ¡ES EL *TAPÓN* DEL DESAGÜE! ¡LO LLEVA PUESTO DE SOMBRERO!'],
   JEFE_FIN: ['@CANDELA|¿LO OYES? ES EL POZO. ¡ESTÁ LLORANDO!', '@CANDELA|ESPERA. MIRA EL DESAGÜE: UN SELLO DE _MOHO_. ESTO NO LO TAPÓ UNA BABOSA SOLA.', '@CANDELA|*DON MILDIU*. SE ESTÁ LLEVANDO LAS LÁGRIMAS DE TODOS HACIA DENTRO, CAPA A CAPA... HACIA EL GERMEN.'],
   FIN: ['FIN DE LA CAPA I', 'LA PIEL', 'CONTINUARÁ EN LA TÚNICA'],
@@ -94,7 +94,7 @@ export const OBJ = [
 export const objective = () => { const f = G.save.flags; return OBJ[f.fin ? 7 : f.jefe ? 6 : f.llave ? 5 : f.mondador ? 4 : f.cisterna ? 3 : f.hoja ? 2 : f.consejo ? 1 : 0]; };
 
 export const ITEMS = {
-  hoja: { name: 'LA HOJA', big: true, make: makeHojaItem, rect: [108, 24, 20, 60], text: 'ITEM_HOJA', zoom: 0.9, desc: 'TE BROTÓ EN EL BANCAL VIEJO. TRES TAJOS CON J; EL TERCERO PEGA FUERTE.', give() { G.player.m.setHoja(true); G.save.flags.hoja = 1; } },
+  hoja: { name: 'LA HOJA', big: true, make: makeHojaItem, rect: [108, 24, 20, 60], text: 'ITEM_HOJA', zoom: 1.3, desc: 'TE BROTÓ EN EL BANCAL VIEJO. TRES TAJOS CON J; EL TERCERO PEGA FUERTE.', give() { G.player.m.setHoja(true); G.save.flags.hoja = 1; } },
   mondador: { name: 'MONDADOR', make: A.makeMondador, rect: [0, 0, 32, 32], text: 'ITEM_MONDADOR', c: true, zoom: 1.0, desc: 'TE QUITA UNA CAPA: NUBE QUE HACE LLORAR, TAMAÑO MENOR Y UNA MUDA QUE PESA.', give() { G.save.flags.mondador = 1; } },
   llave: { name: 'LLAVE MAYOR', make: A.makeKey, rect: [32, 0, 24, 40], text: 'ITEM_LLAVE', zoom: 1.0, desc: 'ABRE LA COMPUERTA DEL DESAGÜE DE LA CISTERNA.', give() { G.save.flags.llave = 1; } },
   capa: { name: 'ANILLO DE CAPA', big: true, make: A.makeCapa, rect: [56, 0, 32, 24], text: 'ITEM_CAPA', zoom: 1.2, desc: 'UNA CAPA MÁS PARA LLEVAR ENCIMA.', give() { const p = G.player; p.maxLayers++; G.save.maxLayers = p.maxLayers; p.setLayers(p.maxLayers); p.crack = false; } },

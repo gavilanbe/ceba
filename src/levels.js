@@ -48,7 +48,7 @@ export function villa() {
   const well = A.makeWell(); L.well = well;
   L.add(new Prop(well.g, 0, 0, 0, 2.3, 0.8, 2.3, { climb: true, noCam: true }));
   L.cubo = L.add(new S.Cubo(0, 0.75, 0, well));
-  L.statue = L.add(new Statue(0, 0, -5.2, 0, { s: 1.35, fixed: done }));
+  L.statue = L.add(new Statue(-4.2, 0, -4.2, 0.785, { s: 1.35, fixed: done }));
   L.add(new Sign(2.6, 0, -2.2, 0.4, 'C_POZO'));
   L.puerro = L.add(new NPC(-2.3, 0, 1.4, 0.6, 'puerro', S.puerroTalk));
   // casas-maceta
@@ -88,7 +88,7 @@ export function villa() {
   L.bancalViejo = L.add(new Bancal(30.5, 3.2, -13.5, 'viejo', { onRoot: S.bancalViejo }));
   L.spawn.viejo = [30.5, 3.2, -11.4, Math.PI];
   // rayo de sol sobre el bancal
-  const beam = A.makeBeam(9, 1.5); beam.position.set(30.5, 3.2, -13.5); beam.material.uniforms.uHide.value = 0.72; L.group.add(beam); L.beam = beam;
+  const beam = A.makeBeam(9, 0.95); beam.position.set(30.5, 3.2, -13.5); beam.material.uniforms.uHide.value = 0.82; L.group.add(beam); L.beam = beam;
   for (let i = 0; i < 34; i++) { const x = 20.6 + r() * 13, z = -17.5 + r() * 26; const y = (x > 26.5 && z < -9) ? 3.2 : (x > 24 && z < -5) ? 2 : 1; if (Math.abs(z) < 2 && x < 27.5) continue; if (x > 25 && x < 29 && z < 2 && z > -9.5) continue; if (Math.hypot(x - 30.5, z + 13.5) < 2.6) continue; L.add(new Chive(x, y, z, { flower: r() < 0.45 })); }
   if (!done) for (const [x, y, z] of [[23, 1, 5], [22, 1, -9], [30, 2, -7], [32, 1, 4]]) L.add(new Pulgon(x, y, z, { aggro: 6 }));
   L.zone(20, -3, 23, 3, () => { if (!flag('hoja')) G.hintOnce('pulgones', 'H_PULGONES'); });
@@ -126,7 +126,7 @@ export function cisterna() {
   L.spawn.entrada = [0, 0, 1.2, Math.PI]; L.spawn.cis0 = [-2.6, 0, 1.4, Math.PI];
   L.decal(-3.4, 1.6, -1.8, 3.2, 0, TI.bancal); L.add(new Bancal(-2.6, 0, 2.4, 'cis0'));
   L.add(new Sign(2.4, 0, -2.8, -0.3, 'C_CISTERNA')); L.add(new Pot(3.2, 0, 3.2)); L.add(new Pot(2.4, 0, 3.4)); L.add(new Lantern(-3.2, 0, -3.2, { r: 5 }));
-  const beam = A.makeBeam(12, 0.9); beam.position.set(0, 0, 0); beam.material.uniforms.uHide.value = 0.75; L.group.add(beam);
+  const beam = A.makeBeam(12, 0.9); beam.position.set(0, 0, 0); beam.material.uniforms.uHide.value = 0.8; L.group.add(beam);
   L.light(0, 2, 0, 5);
   L.ropeEnt = L.add(new S.Cuerda(0, 0, 0));
   // pasillo 0→1
@@ -161,9 +161,9 @@ export function cisterna() {
   room('r2', 'LAS PLAÑIDERAS', -9, -44, 9, -24);
   for (const [x, z] of [[-8, -25], [8, -25], [-8, -43], [8, -43]]) L.add(new Lantern(x, 0, z, { r: 5 }));
   L.add(new Sign(3, 0, -26.6, 0, 'C_PLANIDERAS')); L.add(new Sign(7.4, 0, -27.3, -0.5, 'C_RATONERA'));
-  L.pool = L.water(-9, -41, 9, -28, filled ? -0.32 : -3.05, { tile: TI.aguaOsc, on: filled });
+  L.pool = L.water(-9, -41, 9, -28, filled ? -0.32 : -3.05, { tile: TI.aguaOsc, on: filled, kind: 'waterGlow' });
   L.stA = L.add(new Statue(-5.5, -3, -37, Math.PI / 2, { s: 1.2, onCry: S.planidera })); L.stB = L.add(new Statue(5.5, -3, -33, -Math.PI / 2, { s: 1.2, onCry: S.planidera }));
-  if (filled) { L.stA.setCry(true, true); L.stB.setCry(true, true); }
+  if (filled) { L.stA.setCry(true, true); L.stB.setCry(true, true); L.light(-5.5, 0.5, -37, 7); L.light(5.5, 0.5, -33, 7); }
   L.zone(-9, -41, 9, -30, () => G.hintOnce('planidera', 'H_PLANIDERA'), { y1: -1, once: true });
   // la ratonera (este): solo pasa una cebolla de una capa
   L.addSolid({ x0: 9, x1: 10.01, z0: -27.1, z1: -24.9, y0: 0, y1: 0.95, gap: true, noClimb: true, mat: 'stone', noCam: true });

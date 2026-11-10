@@ -55,7 +55,7 @@ export class Player {
       this.crack = true; audio.sfx('hurt'); fx.shake(0.12, 0.2); fx.stop(0.05);
       fx.burst(P['flake' + clamp(this.layers, 1, 3)], this.pos.x, this.pos.y + 0.5, this.pos.z, 5, { speed: 2, up: 2.5, life: 0.6, size: 0.28 });
       if (G.ui) G.ui.onCrack();
-    } else this.loseLayer(false);
+    } else { if (G.ui) G.ui.onHurt(); this.loseLayer(false); }
     return true;
   }
   loseLayer(voluntary) {
@@ -270,8 +270,8 @@ export class Player {
       if (into < 0.6) continue;
       if (this.state !== 'free') continue;
       const top = L.topOf(s, p.x, p.z), dh = top - p.y;
-      if (s.ent && s.ent.pushable && this.onGround) {
-        pushing = true; this.pushT += dt;
+      if (s.ent && s.ent.pushable && this.onGround && !(s.ent.stuckT > 0)) {
+        pushing = true; this.pushT += dt; { const k = v.x * -hi.nx + v.z * -hi.nz; v.x = -hi.nx * Math.max(0, k); v.z = -hi.nz * Math.max(0, k); }
         if (this.pushT > 0.28) { this.pushT = 0; s.ent.tryPush(Math.abs(hi.nx) > Math.abs(hi.nz) ? -Math.sign(hi.nx) : 0, Math.abs(hi.nx) > Math.abs(hi.nz) ? 0 : -Math.sign(hi.nz), this); }
         continue;
       }

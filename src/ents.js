@@ -175,8 +175,8 @@ export class Chest extends Ent {
       const fx_ = c.pos.x + Math.sin(c.yaw) * 1.25, fz_ = c.pos.z + Math.cos(c.yaw) * 1.25;
       p.auto = { x: fx_, z: fz_, speed: 0.6 }; let w = 0; while (p.auto && w < 1.2) w += yield;
       p.auto = null; p.yaw = c.yaw + Math.PI; p.set('cine');
-      const cy = c.yaw + 0.5;
-      yield* G.cam.to(c.pos.x + Math.sin(cy) * 3.6, c.pos.y + 1.7, c.pos.z + Math.cos(cy) * 3.6, c.pos.x, c.pos.y + 0.75, c.pos.z, 0.5, 34);
+      const cy = c.yaw + 1.15;
+      yield* G.cam.to(c.pos.x + Math.sin(cy) * 3.9, c.pos.y + 2.0, c.pos.z + Math.cos(cy) * 3.9, c.pos.x + Math.sin(c.yaw) * 0.6, c.pos.y + 0.7, c.pos.z + Math.cos(c.yaw) * 0.6, 0.5, 36);
       audio.music(null, { fade: 0.3 }); audio.sfx('chestOpen');
       p.faceOv = 'wow'; p.pose = { L: [-0.45, 0.55, 0.45], R: [0.45, 0.55, 0.45] };
       let e = 0; while (e < (c.big ? 1.5 : 1.0)) { e += yield; c.m.lid.rotation.x = -1.9 * ease.back(clamp(e / (c.big ? 1.3 : 0.8))); c.obj.position.y = c.pos.y + Math.sin(e * 40) * 0.015 * (1 - clamp(e)); if (rnd() < 0.5) fx.one(P.star, c.pos.x + (rnd() - 0.5) * 0.7, c.pos.y + 0.6, c.pos.z + (rnd() - 0.5) * 0.4, { vy: 2 + rnd() * 2, g: -1, life: 0.6, size: 0.36 }); }
@@ -197,7 +197,7 @@ export class Bars extends Ent {
     const b = new MB(); const hw = w / 2;
     const A_ = axis === 'x' ? [[-hw, h, 0], [-hw, 0, 0], [hw, 0, 0], [hw, h, 0]] : [[0, h, hw], [0, 0, hw], [0, 0, -hw], [0, h, -hw]];
     b.quadT(A_[0], A_[1], A_[2], A_[3], cell(TI.reja), w, h);
-    this.obj = b.mesh(mat(tilesTex(), { tiled: true, double: true })); this.sync();
+    this.obj = b.mesh(mat(tilesTex(), { tiled: true, double: true, cut: true })); this.sync();
   }
   onAdd(L) { const t = 0.3; this.sol = L.addSolid(boxSolid(this, this.axis === 'x' ? this.w : t, this.h, this.axis === 'x' ? t : this.w, { noClimb: true, noCam: true })); this.sol.off = this.isOpen; this.obj.position.y = this.pos.y - this.k * (this.h - 0.12); }
   set(open, quiet) {
@@ -215,7 +215,7 @@ export class Slab extends Ent {
     const b = new MB(), c = cell(ti), cs = cell(TI.losaOsc);
     const W_ = axis === 'x' ? w : t, D_ = axis === 'x' ? t : w;
     b.box(W_, h, D_, axis === 'x' ? { f: c, b: c, l: cs, r: cs, t: cs } : { l: c, r: c, f: cs, b: cs, t: cs });
-    this.m = mat(tilesTex()); this.obj = b.mesh(this.m); this.sync();
+    this.m = mat(tilesTex(), { cut: true }); this.obj = b.mesh(this.m); this.sync();
     if (this.needs) { this.label = 'ABRIR'; this.ir = 1.8; this.hh = 1; }
     if (this.key && flag(this.key)) { this.isOpen = true; this.k = 1; }
   }
@@ -265,12 +265,14 @@ export class Block extends Ent {
     if (this.mv) return;
     if (!p.big) { p.strainT = 0.5; audio.sfx('error', { pitch: 0.7 }); fx.one(P.sweat, p.pos.x, p.pos.y + p.h + 0.2, p.pos.z, { vy: 2, vx: (rnd() - 0.5) * 2, g: 8, life: 0.5, size: 0.3 }); G.hintOnce('pesa', 'PESA'); return; }
     const nx = this.pos.x + dx, nz = this.pos.z + dz, L = this.level, h = this.size / 2 - 0.06;
-    if (!L.free(nx, this.pos.y + 0.1, nz, h, this.size - 0.2, this.solid)) { p.strainT = 0.3; return; }
-    if (this.limit && (nx < this.limit[0] || nx > this.limit[2] || nz < this.limit[1] || nz > this.limit[3])) { p.strainT = 0.3; return; }
-    const g = L.ground(nx, nz, this.pos.y + 0.1, 0.3, this.solid); if (g.y < this.pos.y - 0.2) { p.strainT = 0.3; return; }
+    // si no puede avanzar más, deja que Ceba se suba encima
+    if (!L.free(nx, this.pos.y + 0.1, nz, h, this.size - 0.2, this.solid)) { this.stuckT = 1.2; return; }
+    if (this.limit && (nx < this.limit[0] || nx > this.limit[2] || nz < this.limit[1] || nz > this.limit[3])) { this.stuckT = 1.2; return; }
+    const g = L.ground(nx, nz, this.pos.y + 0.1, 0.3, this.solid); if (g.y < this.pos.y - 0.2) { this.stuckT = 1.2; return; }
     this.mv = { x0: this.pos.x, z0: this.pos.z, x1: nx, z1: nz, t: 0 }; audio.sfx('push'); p.strainT = 0.45;
   }
   update(dt) {
+    if (this.stuckT > 0) this.stuckT -= dt;
     if (!this.mv) return; const m = this.mv; m.t += dt / 0.42; const k = ease.io(clamp(m.t));
     this.pos.x = lerp(m.x0, m.x1, k); this.pos.z = lerp(m.z0, m.z1, k);
     const s = this.solid, h = this.size / 2; s.x0 = this.pos.x - h; s.x1 = this.pos.x + h; s.z0 = this.pos.z - h; s.z1 = this.pos.z + h;
@@ -285,7 +287,7 @@ export class Block extends Ent {
 // bancal: plantarse aquí recupera capas y guarda la partida
 export class Bancal extends Ent {
   constructor(x, y, z, id, o = {}) {
-    super(x, y, z); this.id = id; this.label = 'PLANTARSE'; this.ir = 1.0; this.hh = 0.2; this.noFace = true; this.o = o;
+    super(x, y, z); this.id = id; this.label = 'PLANTARSE'; this.ir = 1.3; this.hh = 0.2; this.noFace = true; this.o = o;
     const g = new THREE.Group(); const f = A.makeFlag(); f.g.position.set(0.85, 0, -0.75); g.add(f.g); this.flag = f.g; this.obj = g; this.sync();
   }
   get canInteract() { return !this.o.locked || this.o.locked() === false; }
