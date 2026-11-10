@@ -137,7 +137,7 @@ export function bancalViejo(b, p) {
     audio.sfx('root'); p.faceOv = 'sleep';
     yield* tween(0.6, k => { p.sink = 0.42 * k; if (rnd() < 0.3) fx.dust(p.pos.x + (rnd() - 0.5), 3.25, p.pos.z + (rnd() - 0.5), 1, { dark: true }); });
     yield* G.say(null, 'BROTAR_1');
-    const dur = audio.jingle('sprout');
+    const dur = audio.jingle('sprout'); L.beam.visible = true;
     // el sol aprieta
     const camGo = G.cam.to(33.0, 4.4, -10.6, 30.5, 3.85, -13.5, dur * 0.8, 30);
     let e = 0, stage = 0;
@@ -145,7 +145,7 @@ export function bancalViejo(b, p) {
     const grow = [];
     while (e < dur) {
       const dt = yield; e += dt; camGo.next(dt);
-      L.beam.material.uniforms.uHide.value = lerp(0.82, 0.6, clamp(e / (dur * 0.6)));
+      L.beam.material.uniforms.uHide.value = lerp(0.9, 0.7, clamp(e / (dur * 0.6)));
       if (rnd() < 0.5) fx.one(rnd() < 0.5 ? P.sqY : P.sqG, p.pos.x + (rnd() - 0.5) * 2.2, 3.3, p.pos.z + (rnd() - 0.5) * 2.2, { vy: 1.2 + rnd() * 1.5, g: -0.6, life: 1.1, size: 0.14 });
       p.sqV += Math.sin(e * 20) * 0.6 * clamp(e / dur);
       const marks = [dur * 0.42, dur * 0.55, dur * 0.68];
@@ -157,11 +157,9 @@ export function bancalViejo(b, p) {
     p.sink = 0; p.vel.y = 7; p.onGround = false; p.sqV = 9; audio.sfx('sprout'); fx.flash(7, 0.12); fx.shake(0.12, 0.2);
     fx.burst(P.dustD, p.pos.x, 3.3, p.pos.z, 12, { speed: 2.6, up: 3, g: 8, life: 0.6, size: 0.34 });
     yield* wait(0.55);
-    m.draw(true); p.pose = { R: [0.5, 1.12, 0.2], L: [-0.6, 0.5, 0.1] }; p.faceOv = 'happy'; audio.sfx('swing3');
-    fx.ring(p.pos.x, 3.25, p.pos.z, { r1: 3, t: 0.5, c: 11 }); fx.burst(P.star, p.pos.x, p.pos.y + 1.6, p.pos.z, 10, { speed: 2.5, up: 2, g: 3, life: 0.7, size: 0.4 });
-    yield* wait(0.2);
+    L.beam.visible = false;
     yield* G.giveItem('hoja');
-    m.draw(false); L.beam.material.uniforms.uHide.value = 0.82;
+    m.draw(false);
     G.save.spawn = { level: 'villa', at: 'viejo' }; writeSave();
     cineOff(p, 0.9); audio.music('hill', { fade: 1 });
   });

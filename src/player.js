@@ -418,7 +418,7 @@ export class Player {
       if (this.combo === 3) m.tilt.rotation.x = lerp(-0.25, 0.4, e);
     } else {
       m.tilt.rotation.y = 0;
-      if (m.hoja.visible) { R_ = [0.58, 0.42, 0.22]; m.handR.quaternion.setFromUnitVectors(UP, _v.set(0.25, 0.75, 0.6).normalize()); if (this.drawn <= 0) { m.draw(false); audio.sfx('swing1', { vol: 0.25, pitch: 1.6 }); } }
+      if (m.hoja.visible && !this.pose) { R_ = [0.58, 0.42, 0.22]; m.handR.quaternion.setFromUnitVectors(UP, _v.set(0.25, 0.75, 0.6).normalize()); if (this.drawn <= 0) { m.draw(false); audio.sfx('swing1', { vol: 0.25, pitch: 1.6 }); } }
     }
     const hl = dt > 0 ? 0.45 : 1;
     m.handL.position.lerp(_a.set(L_[0], L_[1], L_[2]), hl); m.handR.position.lerp(_b.set(R_[0], R_[1], R_[2]), this.state === 'attack' ? 1 : hl);

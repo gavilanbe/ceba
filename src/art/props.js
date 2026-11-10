@@ -1,6 +1,6 @@
 // props.js — atrezo: casas-maceta, pozo, cofre, tinaja, cartel, la Plañidera, cebollinos, lágrimas, objetos.
 import { Tex, T, rng } from '../px.js';
-import { MB, mat, texFrom, THREE, blob } from '../gfx.js';
+import { MB, mat, texFrom, texUpdate, THREE, blob } from '../gfx.js';
 import { tilesTex, TI, cell } from './tiles.js';
 
 let _A = null, _B = null;
@@ -157,7 +157,7 @@ export function makeStatue() {
   const g = new THREE.Group();
   g.add(new MB().lathe([[0.62, 0], [0.66, 0.22], [0.5, 0.3], [0.56, 1.0], [0.5, 1.5], [0.34, 1.85], [0.12, 2.02], [0.001, 2.06]], 8, [0, 88, 64, 40]).mesh(m));
   const sh = blob(1.5, 0.5); sh.position.y = 0.02; g.add(sh);
-  return { g, t, tex, m, cry(on) { const c = on ? 12 : 1; t.rect(26, 101, 1, 12, c); t.rect(37, 101, 1, 12, c); if (on) { t.px(26, 103, 7); t.px(37, 106, 7); t.rect(24, 100, 5, 1, 12); t.rect(35, 100, 5, 1, 12); } else { t.rect(24, 100, 5, 1, 0); t.rect(35, 100, 5, 1, 0); } const d = tex.image.data; for (let i = 0; i < 128 * 128; i++) d[i * 4] = t.d[i]; tex.needsUpdate = true; } };
+  return { g, t, tex, m, cry(on) { const c = on ? 12 : 1; t.rect(26, 101, 1, 12, c); t.rect(37, 101, 1, 12, c); if (on) { t.px(26, 103, 7); t.px(37, 106, 7); t.rect(24, 100, 5, 1, 12); t.rect(35, 100, 5, 1, 12); } else { t.rect(24, 100, 5, 1, 0); t.rect(35, 100, 5, 1, 0); } texUpdate(tex); } };
 }
 export function makeChive(flower = false) {
   const g = new THREE.Group(), r = flower ? [80, 104, 16, 24] : [64, 104, 16, 24];

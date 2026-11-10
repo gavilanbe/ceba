@@ -1,5 +1,5 @@
 // ui.js — HUD, diálogos, avisos, rótulos de zona, transiciones y la ventana de objeto nuevo.
-import { THREE, W, H, makeSky, U } from './gfx.js';
+import { THREE, W, H, makeSky, U, MB, mat } from './gfx.js';
 import { Tex, T, BAYER, clamp, lerp, ease, textW, glyph2, LINE } from './px.js';
 import { G, flag, wait } from './state.js';
 import { input, KEYNAME } from './input.js';
@@ -171,29 +171,69 @@ export function setView(make, o = {}) {
 }
 // duración del redoble antes de enseñar el objeto (va con la partitura de audio.js)
 const ROLL = { big: 16 * 60 / 138 / 4, small: 8 * 60 / 144 / 4 };
+// abanico de rayos que gira detrás del objeto, en el propio mundo
+let rayMesh = null;
+function rays() {
+  if (rayMesh) return rayMesh;
+  const b = new MB(), n = 12, u = [84, 12];
+  for (let i = 0; i < n; i++) { const a0 = i / n * 6.283, a1 = a0 + 6.283 / n * 0.5; b.tri([0, 0, 0], [Math.cos(a0), Math.sin(a0), 0], [Math.cos(a1), Math.sin(a1), 0], u, u, u); }
+  rayMesh = b.mesh(mat(fx.tex, { unlit: true, double: true, noFog: true, depthWrite: false })); rayMesh.renderOrder = 4; rayMesh.frustumCulled = false;
+  return rayMesh;
+}
+// Ceba consigue algo: lo levanta sobre la cabeza, en vivo, con la cámara encima
 G.giveItem = function* (id, o = {}) {
-  const it = ITEMS[id]; const p = G.player;
-  if (it.tears) { // premio en lágrimas: sin ventana
+  const it = ITEMS[id]; const p = G.player, L = G.level;
+  if (it.tears) { // premio en lágrimas: sin ceremonia
     audio.jingle('item'); yield* wait(ROLL.small); fx.flash(7, 0.08); G.save.tears = Math.min(999, G.save.tears + it.tears); UI.onTears(); p.sqV = 8;
     yield* G.say(null, it.text); return;
   }
-  G.lock++;
+  G.lock++; const wasCine = G.cine; G.cine = true;
   const big = !!it.big, tA = big ? ROLL.big : ROLL.small;
-  const w = { id, it, t: -tA, tA, out: 0, big }; S.itemWin = w;
   const dur = audio.jingle(big ? 'itemBig' : 'item');
-  // redoble: Ceba se encoge, las chispas acuden
+  // Ceba se vuelve hacia la cámara y la cámara se le acerca durante el redoble
+  const c = G.cam.cam.position; let dx = c.x - p.pos.x, dz = c.z - p.pos.z; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl;
+  p.yaw = Math.atan2(dx, dz); p.vel.set(0, 0, 0);
+  const hy = p.pos.y + 1.0 * p.sc, top = hy + 0.8;
+  const push = G.cam.to(p.pos.x + dx * 5.2, p.pos.y + 1.8, p.pos.z + dz * 5.2, p.pos.x, hy + 0.3, p.pos.z, tA + 0.25, 36);
   p.faceOv = 'effort'; p.pose = { L: [-0.3, 0.5, 0.5], R: [0.3, 0.5, 0.5] };
-  let e = 0; while (e < tA) { const dt = yield; e += dt; p.sqY = lerp(p.sqY, 0.8, 0.12); p.sqV = 0; if (Math.random() < 0.6) { const a = Math.random() * 6.283, r = 2.2; fx.one(P.star, p.pos.x + Math.cos(a) * r, p.pos.y + 0.6 + Math.random(), p.pos.z + Math.sin(a) * r, { vx: -Math.cos(a) * 4, vz: -Math.sin(a) * 4, drag: 1.5, life: 0.45, size: 0.3 }); } }
-  // ¡tachán!
-  w.t = 0; setView(it.make, { zoom: it.zoom }); if (it.give) it.give();
+  let e = 0; while (e < tA) { const dt = yield; e += dt; push.next(dt); p.sqY = lerp(p.sqY, 0.8, 0.12); p.sqV = 0; if (Math.random() < 0.6) { const a = Math.random() * 6.283, r = 2.2; fx.one(P.star, p.pos.x + Math.cos(a) * r, p.pos.y + 0.6 + Math.random(), p.pos.z + Math.sin(a) * r, { vx: -Math.cos(a) * 4, vz: -Math.sin(a) * 4, drag: 1.5, life: 0.45, size: 0.3 }); } }
+  // ¡tachán! el objeto aparece sobre su cabeza
+  if (it.give) it.give();
   G.save.items[id] = (G.save.items[id] || 0) + 1;
   if (it.c && !G.save.c.includes(id)) { const i = G.save.c.indexOf(null); if (i >= 0) G.save.c[i] = id; }
-  fx.flash(7, 0.14); fx.shake(0.14, 0.25); p.sqV = 11; p.faceOv = 'happy'; p.pose = { L: [-0.42, 1.05, 0.2], R: [0.42, 1.05, 0.2] };
-  fx.burst(P.star, p.pos.x, p.pos.y + 1.2, p.pos.z, 16, { speed: 3.5, up: 4, g: 5, life: 0.9, size: 0.42 }); fx.ring(p.pos.x, p.groundY, p.pos.z, { r1: 3.2, t: 0.6, c: 10, th: 0.3 });
-  yield* wait(Math.max(1.6, dur - tA - (big ? 2.4 : 1.2)));
-  yield* G.say(null, it.text);
-  w.out = 0.001; yield* wait(0.3); S.itemWin = null; setView(null);
-  p.pose = null; p.faceOv = null; G.lock--;
+  let obj = null, spin = null, size = 1;
+  if (!it.inHand) {
+    const M = it.make(); obj = M.root || M.g || M; spin = new THREE.Group(); spin.add(obj);
+    const bb = new THREE.Box3().setFromObject(obj), ctr = bb.getCenter(new THREE.Vector3()), sz = bb.getSize(new THREE.Vector3()); obj.position.sub(ctr); size = 1.1 / Math.max(sz.x, sz.y, sz.z);
+    spin.position.set(p.pos.x, top, p.pos.z); spin.scale.setScalar(0.001); G.scene.add(spin);
+  }
+  const ry = rays(); ry.position.set(p.pos.x - dx * 0.5, it.inHand ? top + 0.5 : top, p.pos.z - dz * 0.5); ry.rotation.set(0, Math.atan2(dx, dz), 0); ry.scale.setScalar(0.001); ry.material.uniforms.uHide.value = 0.62; G.scene.add(ry);
+  const glow = { x: p.pos.x + dx * 0.6, y: top, z: p.pos.z + dz * 0.6, r: 0, base: 7, flick: 0.6, ph: 0 }; L.lights.push(glow);
+  fx.flash(7, 0.14); fx.shake(0.14, 0.25); p.sqV = 11; p.faceOv = 'happy';
+  if (it.inHand) { p.drawn = 99; p.m.draw(true); p.pose = { R: [0.5, 1.12, 0.2], L: [-0.6, 0.5, 0.1] }; } else p.pose = { L: [-0.36, 1.12, 0.12], R: [0.36, 1.12, 0.12] };
+  fx.burst(P.star, p.pos.x, top, p.pos.z, 18, { speed: 3.5, up: 3, g: 5, life: 0.9, size: 0.42 }); fx.ring(p.pos.x, p.groundY, p.pos.z, { r1: 3.2, t: 0.6, c: 10, th: 0.3 });
+  S.itemTag = { name: it.name, t: 0 };
+  let t = 0, done = false, leaving = 0;
+  const live = function* () {
+    for (;;) {
+      const dt = yield; t += dt; push.next(dt);
+      const k = ease.back(clamp(t / 0.35)), out = leaving ? 1 - ease.in(clamp(leaving / 0.3)) : 1; if (leaving) leaving += dt;
+      if (spin) { spin.scale.setScalar(Math.max(0.001, size * k * out)); spin.rotation.y += dt * (2.2 + 14 * Math.max(0, 1 - t / 0.9)); spin.position.y = lerp(p.pos.y + 0.6, top + Math.sin(t * 2.4) * 0.05, out * clamp(k)); }
+      ry.scale.setScalar(Math.max(0.001, (2.1 + Math.sin(t * 3) * 0.15) * ease.out3(clamp(t / 0.5)) * out)); ry.rotateZ(dt * 0.9);
+      glow.base = 7 * clamp(t / 0.3) * out;
+      if (Math.random() < 0.35) fx.one(Math.random() < 0.5 ? P.sqY : P.star, p.pos.x + (Math.random() - 0.5) * 1.6, top + (Math.random() - 0.5) * 1.2, p.pos.z + (Math.random() - 0.5) * 1.6, { vy: 0.8 + Math.random(), g: -0.4, life: 0.6, size: 0.2 });
+      if (done && leaving > 0.3) return;
+    }
+  };
+  const lv = live(); lv.next();
+  const talk = (function* () { yield* wait(Math.max(1.6, dur - tA - (big ? 2.4 : 1.2))); yield* G.say(null, it.text); })();
+  for (;;) { const dt = yield; lv.next(dt); if (talk.next(dt).done) break; }
+  // lo guarda: el objeto baja hacia ella y desaparece
+  done = true; leaving = 0.001; audio.sfx('select', { pitch: 1.4 }); S.itemTag.out = 0.001; p.sqV = 6;
+  for (;;) { const dt = yield; if (lv.next(dt).done) break; }
+  if (spin) G.scene.remove(spin); G.scene.remove(ry); const gi = L.lights.indexOf(glow); if (gi >= 0) L.lights.splice(gi, 1);
+  S.itemTag = null; if (it.inHand) { p.drawn = 0; p.m.draw(false); }
+  p.pose = null; p.faceOv = null; G.cine = wasCine; G.lock--;
 };
 
 // ───────── dibujar ─────────
@@ -202,7 +242,7 @@ export function drawUI(dt) {
   const t = ui; t.clear(); const p = G.player, sv = G.save, play = G.mode === 'play';
   if (UI.under) UI.under(t, dt);
   S.bars = lerp(S.bars, G.cam ? G.cam.barsT : 0, 0.3);
-  const hudWant = play && !G.cine && !S.itemWin ? 1 : 0; S.hud = lerp(S.hud, hudWant, 1 - Math.exp(-12 * dt));
+  const hudWant = play && !G.cine ? 1 : 0; S.hud = lerp(S.hud, hudWant, 1 - Math.exp(-12 * dt));
   const hy = Math.round((1 - S.hud) * -46);
 
   if (play && G.cam) {
@@ -300,46 +340,13 @@ export function drawUI(dt) {
   }
   S.toasts = S.toasts.filter(a => a.t < 2.5);
 
-  // ── objeto nuevo: redoble, rayos y ventana ──
-  if (S.itemWin) {
-    const w = S.itemWin; w.t += dt; if (w.out) w.out += dt;
-    const cx = W / 2, cy = 62, gone = w.out ? clamp(w.out / 0.25) : 0;
-    if (w.t < 0) {
-      // redoble: el velo se cierra y una chispa crece en el centro
-      const k = 1 + w.t / w.tA, lv = k * 9;
-      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (BAYER[(y & 3) * 4 + (x & 3)] < lv) t.d[y * W + x] = 1;
-      const r = 2 + k * 9 + Math.sin(G.t * 40) * 1.5;
-      for (let i = 0; i < 8; i++) { const a = i * 0.785 + G.t * 6, d = (1 - k) * 90 + 14; t.rect(Math.round(cx + Math.cos(a) * d) - 1, Math.round(cy + Math.sin(a) * d) - 1, 2, 2, i % 2 ? 10 : 7); }
-      t.rect(cx - 1, cy - r, 2, r * 2, 10); t.rect(cx - r, cy - 1, r * 2, 2, 10); t.disc(cx, cy, Math.max(1, r * 0.4), 7);
-    } else {
-      const pop = w.out ? 1 - ease.in(gone) : ease.back(clamp(w.t / 0.3));
-      const ww = 148, wh = 112, x = (W - ww) >> 1, y = Math.round(lerp(cy - 30, 6, clamp(pop))), sc = clamp(pop);
-      // velo y rayos que giran detrás
-      const rot = G.t * 0.7, grow = ease.out3(clamp(w.t / 0.5)) * (1 - gone), R1 = 190 * grow, sec = Math.PI / 9;
-      for (let yy = 0; yy < H; yy++) for (let xx = 0; xx < W; xx++) {
-        const th = (BAYER[(yy & 3) * 4 + (xx & 3)] + 0.5) / 16; const dx = xx - cx, dy = (yy - cy) * 1.15, d = Math.sqrt(dx * dx + dy * dy);
-        let c = (1 - gone) * 0.7 > th ? 1 : T;
-        if (d < R1) { const s2 = Math.floor((Math.atan2(dy, dx) + rot) / sec) & 1; if (s2 && (d < 96 || 1 - (d - 96) / 100 > th)) c = d < 60 + Math.sin(G.t * 5) * 4 ? 10 : 9; else if (!s2 && d < 60 + Math.sin(G.t * 5) * 4 && 0.5 > th) c = 9; }
-        if (c !== T) t.d[yy * W + xx] = c;
-      }
-      // destello de la entrada
-      if (w.t < 0.35) { const r = w.t / 0.35 * 150; t.ring(cx, cy, r, 7, 3); t.ring(cx, cy, r * 0.7, 10, 2); }
-      if (sc > 0.5) {
-        t.rect(x - 2, y - 2, ww + 4, wh + 5, 0);
-        header(t, x, y, ww, '¡Objeto nuevo!'); t.rect(x + ww - 10, y + 3, 6, 5, 7); t.rect(x + ww - 9, y + 4, 4, 3, 8);
-        const vh = 66; t.erase(x, y + 11, ww, vh);
-        t.rect(x, y + 11 + vh, ww, 24, 0);
-        const sheet = UI.view && UI.view.M && (UI.view.M.t || (UI.view.M.tex && UI.view.M.tex.userData.src));
-        if (sheet && w.it.rect) { const r = w.it.rect, s3 = Math.min(1, 20 / r[3], (ww - 8) / r[2]); const dw = Math.floor(r[2] * s3), dh = Math.floor(r[3] * s3); for (let j = 0; j < dh; j++) for (let i = 0; i < dw; i++) { const c = sheet.get(r[0] + Math.floor(i / s3), r[1] + Math.floor(j / s3)); if (c !== T) t.px(x + ((ww - dw) >> 1) + i, y + 13 + vh + ((20 - dh) >> 1) + j, c); } }
-        t.rect(x, y + wh - 11, ww, 11, 8); t.rect(x, y + wh - 11, ww, 1, 14);
-        // el nombre entra letra a letra con el acorde final
-        const nm = w.it.name, nw = textW(nm); let X = x + ((ww - nw) >> 1), i = 0;
-        for (const ch of nm) { const k = clamp((w.t - 0.25 - i * 0.04) / 0.2); if (k > 0) t.text(ch, X, y + wh - 9 - Math.round((1 - ease.back(k)) * 6), 7); X += glyph2(ch).w + 1; i++; }
-        if (UI.view) { UI.view.x = x; UI.view.y = y + 11; UI.view.w = ww; UI.view.h = vh; UI.view.spin.rotation.y += dt * (2 + 9 * Math.max(0, 1 - w.t / 0.8)); }
-      } else if (UI.view) UI.view.w = 0;
-      // confeti de estrellas
-      for (let i = 0; i < 14; i++) { const ph = (G.t * (0.5 + (i % 5) * 0.12) + i * 0.37) % 1, sx = (i * 53 + 17) % W, sy = Math.round(ph * (H + 10)) - 5; if ((1 - gone) > 0.3 && (sx < x - 4 || sx > x + ww + 4)) t.spr(i % 3 ? ['.a.', 'a7a', '.a.'] : ['..7..', '..a..', '7a7a7', '..a..', '..7..'], sx + Math.round(Math.sin(ph * 9 + i) * 3), sy); }
-    }
+  // ── objeto nuevo: solo el nombre, arriba; el objeto está en el mundo ──
+  if (S.itemTag) {
+    const g = S.itemTag; g.t += dt; if (g.out) g.out += dt;
+    const out = g.out ? clamp(g.out / 0.25) : 0, y = 22 - Math.round(out * 40);
+    const k0 = ease.back(clamp(g.t / 0.3)); if (k0 > 0.05 && out < 1) { const lb = 'Objeto nuevo', lw = Math.round((textW(lb) + 12) * clamp(k0)); t.rect((W - lw) >> 1, y - 1, lw, 12, 0); t.rect(((W - lw) >> 1) + 1, y, lw - 2, 10, 8); t.setClip((W - lw) >> 1, y, lw, 10); t.textC(lb, W / 2, y + 2, 7); t.setClip(null); }
+    const nw = textW(g.name, 2); let X = (W - nw) >> 1, i = 0;
+    for (const ch of g.name) { const k = clamp((g.t - 0.2 - i * 0.045) / 0.22); if (k > 0 && out < 1) { const dy = Math.round((1 - ease.back(k)) * 10); t.text(ch, X + 1, y + 17 + dy, 0, 2); t.textO(ch, X, y + 14 + dy, 7, 0, 2); } X += (glyph2(ch).w + 1) * 2; i++; }
   }
 
   // ── diálogo ──

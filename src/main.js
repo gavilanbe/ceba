@@ -1,5 +1,5 @@
 // main.js — arranque, bucle, cambio de nivel, acción contextual, muerte y herramientas de prueba.
-import { THREE, makeRenderer, makeSky, U, W, H, setLights } from './gfx.js';
+import { THREE, makeRenderer, makeSky, U, W, H, RS, setLights } from './gfx.js';
 import { G, newSave, loadSave, writeSave, wipeSave, flag, run, tickScripts, wait, all } from './state.js';
 import { input } from './input.js';
 import { fx, P, rnd } from './fx.js';
@@ -122,18 +122,18 @@ function update(dt) {
 }
 const _d = new THREE.Vector3(), _p = new THREE.Vector3();
 function render(dt) {
-  renderer.setViewport(0, 0, W, H); renderer.setScissorTest(false); renderer.clear();
+  renderer.setViewport(0, 0, W * RS, H * RS); renderer.setScissorTest(false); renderer.clear();
   if (G.mode === 'title') Title.render(renderer);
   else if (G.level) {
     cam.cam.getWorldDirection(_d); sky.material.uniforms.uOff.value = (G.level.skyOff || 0) + _d.y * 0.6;
     // ventana para ver a Ceba si hay un muro delante
     _p.set(player.pos.x, player.pos.y + 0.5 * player.sc, player.pos.z); const vz = -_p.clone().applyMatrix4(cam.cam.matrixWorldInverse).z; _p.project(cam.cam);
-    U.uCutXY.value.set((_p.x * 0.5 + 0.5) * W, (_p.y * 0.5 + 0.5) * H); U.uCutZ.value = vz;
+    U.uCutXY.value.set((_p.x * 0.5 + 0.5) * W * RS, (_p.y * 0.5 + 0.5) * H * RS); U.uCutZ.value = vz;
     if (G.level.camFree) {
       U.uCutR.value = 0; const c = cam.cam.position, f = cam.shot ? cam.look : player.pos; let nx = c.x - f.x, nz = c.z - f.z; const n = Math.hypot(nx, nz) || 1; nx /= n; nz /= n;
       const fy = cam.shot ? cam.look.y - 0.4 : Math.min(player.pos.y, player.groundY > -50 ? player.groundY : player.pos.y);
       U.uCutP.value.set(nx, nz, f.x * nx + f.z * nz + (cam.shot ? Math.min(2.5, n * 0.5) : 1.5), fy + 0.3);
-    } else { U.uCutP.value.w = -999; U.uCutR.value = G.cine ? 0 : 34 * clamp(7 / Math.max(2, vz), 0.6, 1.6); }
+    } else { U.uCutP.value.w = -999; U.uCutR.value = G.cine ? 0 : 34 * RS * clamp(7 / Math.max(2, vz), 0.6, 1.6); }
     renderer.render(scene, cam.cam);
   }
   drawUI(dt);
@@ -141,7 +141,7 @@ function render(dt) {
   if (v && v.w > 4) {
     const keep = [U.uDark.value, U.uFogR.value.x, U.uFogR.value.y, U.uAmb.value]; const pl = U.uPL.value.map(p => p.w);
     U.uDark.value = 0; U.uFogR.value.set(900, 999); U.uAmb.value = 0.5; U.uPL.value.forEach(p => { p.w = 0; }); U.uCutR.value = 0; U.uCutP.value.w = -999;
-    renderer.setViewport(v.x, H - v.y - v.h, v.w, v.h); renderer.setScissor(v.x, H - v.y - v.h, v.w, v.h); renderer.setScissorTest(true);
+    renderer.setViewport(v.x * RS, (H - v.y - v.h) * RS, v.w * RS, v.h * RS); renderer.setScissor(v.x * RS, (H - v.y - v.h) * RS, v.w * RS, v.h * RS); renderer.setScissorTest(true);
     renderer.clearDepth(); v.cam.aspect = v.w / v.h; v.cam.updateProjectionMatrix();
     v.cam.position.set(0, v.dist * v.tilt, v.dist); v.cam.lookAt(0, 0, 0);
     renderer.render(v.scene, v.cam); renderer.setScissorTest(false);

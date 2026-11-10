@@ -24,7 +24,7 @@ class Prop extends Ent {
 export function villa() {
   const L = new Level('villa'); const r = rng(2024);
   L.title = 'VILLA RISTRA'; L.sub = 'CAPA I · LA PIEL'; L.music = 'village';
-  L.sky = [15, 12, 12, 12]; L.fog = [34, 78, 15]; L.dark = 0; L.amb = 0.5; L.skyOff = 0.12;
+  L.sky = [15, 12, 12, 12]; L.fog = [52, 120, 15]; L.dark = 0; L.amb = 0.5; L.skyOff = 0.12;
   const done = !!flag('jefe');
   const g = { top: TI.hierba, side: TI.estrato, sideTop: TI.hierbaLado, mat: 'grass' };
   // suelo con el hueco del estanque
@@ -88,7 +88,7 @@ export function villa() {
   L.bancalViejo = L.add(new Bancal(30.5, 3.2, -13.5, 'viejo', { onRoot: S.bancalViejo }));
   L.spawn.viejo = [30.5, 3.2, -11.4, Math.PI];
   // rayo de sol sobre el bancal
-  const beam = A.makeBeam(9, 0.95); beam.position.set(30.5, 3.2, -13.5); beam.material.uniforms.uHide.value = 0.82; L.group.add(beam); L.beam = beam;
+  const beam = A.makeBeam(9, 0.75); beam.position.set(30.5, 3.2, -13.5); beam.material.uniforms.uHide.value = 0.9; beam.visible = false; L.group.add(beam); L.beam = beam;
   for (let i = 0; i < 34; i++) { const x = 20.6 + r() * 13, z = -17.5 + r() * 26; const y = (x > 26.5 && z < -9) ? 3.2 : (x > 24 && z < -5) ? 2 : 1; if (Math.abs(z) < 2 && x < 27.5) continue; if (x > 25 && x < 29 && z < 2 && z > -9.5) continue; if (Math.hypot(x - 30.5, z + 13.5) < 2.6) continue; L.add(new Chive(x, y, z, { flower: r() < 0.45 })); }
   if (!done) for (const [x, y, z] of [[23, 1, 5], [22, 1, -9], [30, 2, -7], [32, 1, 4]]) L.add(new Pulgon(x, y, z, { aggro: 6 }));
   L.zone(20, -3, 23, 3, () => { if (!flag('hoja')) G.hintOnce('pulgones', 'H_PULGONES'); });

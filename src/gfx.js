@@ -4,7 +4,8 @@ import * as THREE from '../vendor/three.module.js';
 import { RGB, DARK, T, Tex } from './px.js';
 
 export { THREE };
-export const W = 320, H = 180;
+export const W = 320, H = 180;   // lienzo de la interfaz
+export const RS = 2;             // el 3D se pinta a W×RS, H×RS: bordes y texturas más limpios, misma paleta y tramado
 
 // uniformes compartidos por todos los materiales (misma referencia)
 export const U = {
@@ -65,6 +66,7 @@ uniform vec4 uPL[6];
 uniform float uFlash; uniform int uFlashC;
 uniform float uBias, uUnlit, uHide, uNoFog;
 uniform int uSwapA, uSwapB;
+uniform float uMaxLod;
 #ifdef TILED
 flat in vec4 vR;
 #endif
@@ -77,11 +79,14 @@ const int DK[16] = int[16](${DARK.join(',')});
 const float BY[16] = float[16](0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.);
 float bayer(vec2 p) { int x = int(mod(p.x, 4.0)), y = int(mod(p.y, 4.0)); return (BY[y * 4 + x] + 0.5) / 16.0; }
 void main() {
-  vec2 uv = vUv;
+  vec2 uv = vUv, gq = vUv;
 #ifdef TILED
-  uv = vR.xy + fract(vUv) * vR.zw;
+  uv = vR.xy + fract(vUv) * vR.zw; gq = vUv * vR.zw;
 #endif
-  int c = int(texture(map, uv).r * 255.0 + 0.5);
+  // nivel de detalle a mano: de lejos, la textura se resume en vez de chispear
+  vec2 ddx = dFdx(gq) * 128.0, ddy = dFdy(gq) * 128.0;
+  float lod = clamp(floor(0.5 * log2(max(dot(ddx, ddx), dot(ddy, ddy)) + 1e-6) + 0.2), 0.0, uMaxLod);
+  int c = int(textureLod(map, uv, lod).r * 255.0 + 0.5);
   if (c > 15) discard;
   float th = bayer(gl_FragCoord.xy);
   if (uHide > th) discard;
@@ -122,19 +127,33 @@ void main() {
   oC = vec4(pal[c], 1.0);
 }`;
 
-// textura de índices a partir de un Tex
+// textura de índices a partir de un Tex, con sus reducciones hechas por mayoría (siguen siendo colores de paleta)
+function mipChain(t) {
+  let w = t.w, h = t.h, src = t.d; const out = [];
+  const pack = (d, n) => { const o = new Uint8Array(n * 4); for (let i = 0; i < n; i++) { o[i * 4] = d[i]; o[i * 4 + 3] = 255; } return o; };
+  out.push({ data: pack(src, w * h), width: w, height: h });
+  while (w > 1 && h > 1) {
+    const nw = w >> 1, nh = h >> 1, d = new Uint8Array(nw * nh);
+    for (let y = 0; y < nh; y++) for (let x = 0; x < nw; x++) {
+      const a = src[(y * 2) * w + x * 2], b = src[(y * 2) * w + x * 2 + 1], c = src[(y * 2 + 1) * w + x * 2], e = src[(y * 2 + 1) * w + x * 2 + 1];
+      // gana el que más se repite; en empate, alterna para no borrar los detalles finos siempre igual
+      d[y * nw + x] = (a === b || a === c || a === e) ? a : (b === c || b === e) ? b : (c === e) ? c : ((x + y) & 1 ? e : a);
+    }
+    out.push({ data: pack(d, nw * nh), width: nw, height: nh }); src = d; w = nw; h = nh;
+  }
+  return out;
+}
 export function texFrom(t) {
-  const d = new Uint8Array(t.w * t.h * 4);
-  for (let i = 0; i < t.w * t.h; i++) { d[i * 4] = t.d[i]; d[i * 4 + 3] = 255; }
-  const tx = new THREE.DataTexture(d, t.w, t.h, THREE.RGBAFormat);
-  tx.magFilter = tx.minFilter = THREE.NearestFilter;
+  const mips = mipChain(t);
+  const tx = new THREE.DataTexture(mips[0].data, t.w, t.h, THREE.RGBAFormat);
+  tx.mipmaps = mips; tx.magFilter = THREE.NearestFilter; tx.minFilter = THREE.NearestMipmapNearestFilter;
   tx.generateMipmaps = false; tx.flipY = false; tx.needsUpdate = true;
   tx.userData.src = t;
   return tx;
 }
 export function texUpdate(tx) {
-  const t = tx.userData.src, d = tx.image.data;
-  for (let i = 0; i < t.w * t.h; i++) d[i * 4] = t.d[i];
+  const mips = mipChain(tx.userData.src);
+  for (let i = 0; i < mips.length; i++) tx.mipmaps[i].data.set(mips[i].data);
   tx.needsUpdate = true;
 }
 
@@ -150,7 +169,7 @@ export function mat(tex, o = {}) {
       uFlash: { value: 0 }, uFlashC: { value: 7 },
       uBias: { value: o.bias || 0 }, uUnlit: { value: o.unlit ? 1 : 0 }, uHide: { value: 0 }, uNoFog: { value: o.noFog ? 1 : 0 },
       uScroll: { value: new THREE.Vector2() }, uWave: { value: o.wave || 0 },
-      uSwapA: { value: -1 }, uSwapB: { value: 0 },
+      uSwapA: { value: -1 }, uSwapB: { value: 0 }, uMaxLod: { value: o.maxLod ?? (o.tiled ? 3 : 2) },
     },
     side: o.double ? THREE.DoubleSide : THREE.FrontSide,
     depthWrite: o.depthWrite !== false, depthTest: o.depthTest !== false,
@@ -199,12 +218,12 @@ float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void main() {
   int x = int(mod(gl_FragCoord.x, 4.0)), y = int(mod(gl_FragCoord.y, 4.0));
   float th = (BY[y * 4 + x] + 0.5) / 16.0;
-  float v = clamp(gl_FragCoord.y / ${H}.0 + uOff, 0.0, 0.999) * 3.0;
+  float v = clamp(gl_FragCoord.y / ${H * 2}.0 + uOff, 0.0, 0.999) * 3.0;
   int k = int(floor(v)); float f = v - float(k);
   f = floor(f * 6.0 + 0.5) / 6.0;
   int c = f > th ? uC[k + 1] : uC[k];
   if (uStars > 0.0) {
-    vec2 g = floor(gl_FragCoord.xy);
+    vec2 g = floor(gl_FragCoord.xy / 2.0);
     float r = h(g);
     if (r > 0.9955) { float tw = h(g + 7.0) * 6.28 + uTime * (1.0 + h(g + 3.0) * 2.0); c = sin(tw) > -0.3 ? (r > 0.9985 ? 7 : 6) : 13; }
   }
@@ -340,7 +359,7 @@ export class MB {
 // ───────────────────────── renderizador ─────────────────────────
 export function makeRenderer(canvas) {
   const r = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true });
-  r.setPixelRatio(1); r.setSize(W, H, false);
+  r.setPixelRatio(1); r.setSize(W * RS, H * RS, false);
   r.outputColorSpace = THREE.LinearSRGBColorSpace;
   r.autoClear = false;
   return r;

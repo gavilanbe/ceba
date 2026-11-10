@@ -5,7 +5,7 @@
 canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}</style>
 <div id="wrap"><div id="box"><canvas id="gl"></canvas><canvas id="ui" width="320" height="180"></canvas></div></div>
 <script type="module">
-import { THREE, makeRenderer, makeSky, U, W, H } from './src/gfx.js';
+import { THREE, makeRenderer, makeSky, U, W, H, RS } from './src/gfx.js';
 import { Tex } from './src/px.js';
 import { MODELS } from './src/art/index.js';
 const q = new URLSearchParams(location.search);
@@ -25,8 +25,8 @@ function frame(dt) {
   const a = yaw != null ? +yaw : t * 0.9;
   cam.position.set(c.x + Math.sin(a) * dist, c.y + dist * 0.38, c.z + Math.cos(a) * dist); cam.lookAt(c);
   if (M.tick) M.tick(dt, t);
-  r.setViewport(0, 0, W, H); r.setScissorTest(false); r.setClearColor(0x000000); r.clear();
-  r.setViewport(8, H - 8 - 9 - 96, 150, 96); r.setScissor(8, H - 8 - 9 - 96, 150, 96); r.setScissorTest(true);
+  r.setViewport(0, 0, W * RS, H * RS); r.setScissorTest(false); r.setClearColor(0x000000); r.clear();
+  r.setViewport(8 * RS, (H - 8 - 9 - 96) * RS, 150 * RS, 96 * RS); r.setScissor(8 * RS, (H - 8 - 9 - 96) * RS, 150 * RS, 96 * RS); r.setScissorTest(true);
   r.render(scene, cam);
   ui.clear();
   ui.rect(8, 8, 150, 9, 8); ui.text('PICOCEBA', 20, 10, 7); ui.rect(11, 10, 5, 1, 7); ui.rect(11, 12, 5, 1, 7); ui.rect(11, 14, 5, 1, 7);
