@@ -223,22 +223,60 @@ const TRACKS = {
 };
 
 const JINGLES = {
+  // Objeto nuevo. Tres tiempos: redoble que sube por terceras (A), el motivo de Ceba a dos voces
+  // con su «lágrima» en do natural (B) y el remate en re mayor con una cascada de destellos (D).
+  // El juego enseña el objeto justo al acabar A: si cambias su longitud, cambia ROLL en ui.js.
   item: {
-    bpm: 120, form: 'A', pre: { p1: 'v11 w2 @1 y1', p2: 'v8 w1 @1', tri: 'v12' },
-    sections: { A: {
-      p1: `o5 a,2 d2 e2 f#2 a12`,
-      p2: `o4 r2 f#2 a2 d'2 e'12`,
-      tri: `o3 d8 d,12`,
-    } },
+    bpm: 144, form: 'A B D', echo: 0.3, pre: { p1: 'v11 w2 @1 y1', p2: 'v8 w1 @1', tri: 'v13', nz: 'v7' },
+    sections: {
+      A: {
+        p1: `@3 w1 y0 o4 l1 v6 a c#' v7 b d' v9 c#' e' v11 d' f#'`,
+        p2: `@3 w0 o4 l1 v4 e a v5 f# b v6 g# c#' v7 a d'`,
+        tri: `o2 a8`,
+        nz: `l1 v4 t t v5 t t v6 t t v8 s s`,
+      },
+      B: {
+        p1: `o4 a2 d'2 e'2 f#'2 | g'2 e'2 c''4`,
+        p2: `o4 f#2 a2 c#'2 d'2 | e'2 c'2 g'4`,
+        tri: `o3 d2 d2 a,2 d2 | c2 c2 g,2 c2`,
+        nz: `k2 h2 s2 h2 | k2 k2 s2 s2`,
+      },
+      D: {
+        p1: `o5 f#2 a2 d'12`,
+        p2: `@0 w0 o5 l1 v8 [d f# a d']2 v6 d f# a d' v4 d f# a d'`,
+        tri: `o3 d4 a,4 d8`,
+        nz: `o4 k2 k2 o8`,
+      },
+    },
   },
   itemBig: {
-    bpm: 132, form: 'A', pre: { p1: 'v11 w2 @1 y1', p2: 'v8 w1 @1', tri: 'v13', nz: 'v7' },
-    sections: { A: {
-      p1: `o4 a2 d'2 e'2 f#'6 e'2 d'2 | c'4 e'4 g'4 c''4 | d''16`,
-      p2: `o4 f#2 a2 c#'2 d'6 c#'2 a2 | g4 c'4 e'4 g'4 | f#'16`,
-      tri: `o3 d8 d8 | c8 c4 e4 | d16`,
-      nz: `r16 | r8 s2 s2 s1 s1 s1 s1 | o16`,
-    } },
+    bpm: 138, form: 'A B C D', echo: 0.32, pre: { p1: 'v11 w2 @1 y1', p2: 'v8 w1 @1', tri: 'v13', nz: 'v7' },
+    sections: {
+      A: {
+        p1: `@3 w1 y0 o4 l1 v5 [a c#']2 v6 [b d']2 v8 [c#' e']2 v10 d' f#' v12 e' g'`,
+        p2: `@3 w0 o4 l1 v3 [e a]2 v4 [f# b]2 v5 [g# c#']2 v6 a d' v7 b e'`,
+        tri: `o2 a8 a4 a2 a1 a1`,
+        nz: `l1 v3 [t]4 v4 [t]4 v6 [t]4 v8 t t s s`,
+      },
+      B: {
+        p1: `o4 a2 d'2 e'2 f#'6 a'4`,
+        p2: `o4 f#2 a2 c#'2 d'6 f#'2 e'2`,
+        tri: `o3 d4 a,4 d4 f#4`,
+        nz: `k2 h2 s2 h2 k2 h1 h1 s4`,
+      },
+      C: {
+        p1: `o4 b-2 d'2 f'4 | c'2 e'2 g'4`,
+        p2: `o4 f2 b-2 d'4 | g2 c'2 e'2 d'2`,
+        tri: `o2 b-4 b-2 f2 | o3 c4 c2 g,2`,
+        nz: `k4 s2 k2 | k2 k2 s1 s1 s1 s1`,
+      },
+      D: {
+        p1: `o5 f#4 a4 d'12 r4`,
+        p2: `@0 w0 o5 l1 v8 [d f# a d']3 v6 [d f# a d']2 v4 d f# a d'`,
+        tri: `o3 d8 a,4 d12`,
+        nz: `o8 k2 k2 s4 o8`,
+      },
+    },
   },
   sprout: {
     bpm: 120, form: 'A', pre: { p1: 'v10 w1 @1 y1', p2: 'v7 w0 @1', tri: 'v12' },

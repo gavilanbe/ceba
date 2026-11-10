@@ -295,7 +295,7 @@ export class Bancal extends Ent {
   interact(p) { if (this.o.onRoot && this.o.onRoot(this, p) === false) return; p.startRoot(this); }
   onLeave(p, full) {
     if (this.o.noSave) return;
-    G.save.spawn = { level: this.level.name, at: this.id }; G.save.layers = p.layers; G.save.crack = p.crack; writeSave(); G.toast('PARTIDA GUARDADA', 'bancal');
+    G.save.spawn = { level: this.level.name, at: this.id }; G.save.layers = p.layers; G.save.crack = p.crack; writeSave(); G.toast('Partida guardada', 'bancal');
   }
   update(dt) {
     this.t += dt; this.flag.rotation.y = Math.sin(this.t * 2) * 0.25;

@@ -83,7 +83,7 @@ export const TXT = {
   CIS_UNA: '¡ESA LLORA! FALTA LA OTRA.',
   JEFE_1: ['@CANDELA|ESE CORCHO... ¡ES EL *TAPÓN* DEL DESAGÜE! ¡LO LLEVA PUESTO DE SOMBRERO!'],
   JEFE_FIN: ['@CANDELA|¿LO OYES? ES EL POZO. ¡ESTÁ LLORANDO!', '@CANDELA|ESPERA. MIRA EL DESAGÜE: UN SELLO DE _MOHO_. ESTO NO LO TAPÓ UNA BABOSA SOLA.', '@CANDELA|*DON MILDIU*. SE ESTÁ LLEVANDO LAS LÁGRIMAS DE TODOS HACIA DENTRO, CAPA A CAPA... HACIA EL GERMEN.'],
-  FIN: ['FIN DE LA CAPA I', 'LA PIEL', 'CONTINUARÁ EN LA TÚNICA'],
+  FIN: ['Fin de la capa I', 'LA PIEL', 'Continuará en la Túnica'],
   MUERTE: 'TE HAS QUEDADO EN NADA.',
 };
 
@@ -101,6 +101,29 @@ export const ITEMS = {
   l20: { tears: 20, text: 'ITEM_L20' }, l50: { tears: 50, text: 'ITEM_L50' },
 };
 
+// ── el guion está escrito en mayúsculas; aquí se pasa a frase con sus nombres propios ──
+const PROPER = ['Ceba', 'Candela', 'Bulbo', 'Villa Ristra', 'Consejo', 'Bancal Viejo', 'Túnica', 'Germen', 'Don Mildiu', 'Tapona', 'Chalota', 'Croqueta', 'Mondador', 'Llave Mayor', 'Cisterna', 'Hoja', 'Loma', 'Pozo del Llanto', 'Anillo de Capa', 'Espacio', 'Mayús', 'Intro'];
+export function nice(s) {
+  let name = ''; if (s[0] === '@') { const i = s.indexOf('|'); name = s.slice(0, i + 1); s = s.slice(i + 1); }
+  s = s.toLocaleLowerCase('es');
+  // mayúscula al empezar y tras punto, exclamación o interrogación (los puntos suspensivos no cortan)
+  let out = '', cap = true;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (/[a-záéíóúüñ]/.test(ch)) { out += cap ? ch.toLocaleUpperCase('es') : ch; cap = false; continue; }
+    if (/[0-9]/.test(ch)) cap = false;
+    if ((ch === '.' && s[i + 1] !== '.' && s[i - 1] !== '.') || ch === '!' || ch === '?') cap = true;
+    out += ch;
+  }
+  for (const w of PROPER) out = out.replace(new RegExp('(^|[^a-záéíóúüñ])' + w.toLocaleLowerCase('es') + '(?![a-záéíóúüñ])', 'gi'), (m, a) => a + w);
+  out = out.replace(/la piel(?![a-záéíóúüñ])/gi, m => m[0] + 'a Piel').replace(/\*([a-z])\*/g, (m, a) => '*' + a.toUpperCase() + '*').replace(/([Cc])apa (i{1,3}|iv|vi{0,2}|v)(?![a-záéíóúüñ])/g, (m, c, n) => c + 'apa ' + n.toUpperCase());
+  out = out.replace(/ (u|i|o) · (i) · (o):/i, ' U · I · O:').replace(/con j;/, 'con J;');
+  return name + out;
+}
+for (const k in TXT) { if (k === 'FIN') continue; const v = TXT[k]; TXT[k] = Array.isArray(v) ? v.map(nice) : nice(v); }
+for (let i = 0; i < OBJ.length; i++) OBJ[i] = nice(OBJ[i]);
+for (const k in ITEMS) if (ITEMS[k].desc) ITEMS[k].desc = nice(ITEMS[k].desc);
+
 // cuaderno: el ecosistema de Bulbo
 export const ECO = [
   { id: 'cebollino', name: 'CEBOLLINO', make: () => A.makeChive(true), text: 'LA HIERBA DE BULBO. BEBE LO QUE SE LLORA Y LO DEVUELVE EN LÁGRIMAS SI LA SIEGAS. VUELVE A CRECER EN UN SUSPIRO.' },
@@ -114,4 +137,5 @@ export const ECO = [
   { id: 'tapona', name: 'TAPONA', make: F.makeTapona, text: 'BABOSA DE CISTERNA. ALGUIEN LE PUSO EL TAPÓN DEL DESAGÜE DE SOMBRERO Y LE DIJO QUE NO SE MOVIERA.' },
   { id: 'mildiu', name: 'DON MILDIU', make: null, text: 'MOHO DE HUMEDAD QUIETA. QUIERE LAS LÁGRIMAS DE TODOS EN UN SOLO SITIO, OSCURO Y SIN CORRIENTE.' },
 ];
+for (const e of ECO) e.text = nice(e.text);
 export { makeCeba };

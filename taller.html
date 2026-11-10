@@ -31,7 +31,7 @@ function frame(dt) {
   ui.clear();
   ui.rect(8, 8, 150, 9, 8); ui.text('PICOCEBA', 20, 10, 7); ui.rect(11, 10, 5, 1, 7); ui.rect(11, 12, 5, 1, 7); ui.rect(11, 14, 5, 1, 7);
   ui.rect(8, 113, 150, 60, 0); ui.rect(8, 164, 150, 9, 8); ui.text(name, 20, 166, 7); ui.text('+', 12, 166, 7);
-  if (sheet) { ui.rect(170, 26, 130, 130, 1); ui.blit(sheet, 0, 0, 128, 128, 171, 27); ui.text('HOJA DE TEXTURA 128×128', 171, 160, 6); }
+  if (sheet) { ui.rect(170, 26, 130, 130, 1); ui.blit(sheet, 0, 0, 128, 128, 171, 27); ui.text('Hoja de textura 128×128', 171, 160, 6); }
   ctx.putImageData(new ImageData(ui.rgba(img.data), W, H), 0, 0);
 }
 window.step = n => { for (let i = 0; i < n; i++) frame(1 / 60); };

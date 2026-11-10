@@ -293,7 +293,7 @@ function* ending(L) {
   // tarjeta final
   yield* G.cam.to(0, 16, 30, 0, 2, -4, 3.5, 40);
   yield* G.fade(1, 1.2, 0);
-  let t0 = 0; UI.top = (t, dt) => { t0 += dt; const k = clamp(t0 / 1); t.textC(TXT.FIN[0], W / 2, 62, 6); if (t0 > 0.8) t.textC(TXT.FIN[1], W / 2, 76, 9, 3); if (t0 > 1.8) { t.textC(TXT.FIN[2], W / 2, 108, 13); for (let i = 0; i < 3; i++) t.arc(W / 2, 200, 100 - i * 6, 101 - i * 6, -0.9, 0.9, [9, 14, 7][i]); } if (t0 > 3 && Math.floor(t0 * 2) % 2) t.textC('PULSA ESPACIO', W / 2, 140, 5); };
+  let t0 = 0; UI.top = (t, dt) => { t0 += dt; const k = clamp(t0 / 1); t.textC(TXT.FIN[0], W / 2, 52, 6); if (t0 > 0.8) t.textC(TXT.FIN[1], W / 2, 68, 9, 3); if (t0 > 1.8) { t.textC(TXT.FIN[2], W / 2, 102, 13); for (let i = 0; i < 3; i++) t.arc(W / 2, 200, 100 - i * 6, 101 - i * 6, -0.9, 0.9, [9, 14, 7][i]); } if (t0 > 3 && Math.floor(t0 * 2) % 2) t.textC('Pulsa Espacio', W / 2, 150, 6); };
   audio.jingle('capa'); yield* wait(3);
   for (;;) { yield; if (G.input.hit('a') || G.input.hit('start')) break; }
   UI.top = null; flag('fin', 1); G.save.spawn = { level: 'villa', at: 'plaza' }; writeSave();

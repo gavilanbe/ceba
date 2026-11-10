@@ -71,7 +71,7 @@ const S = { t: 0, sel: 0, opts: [], phase: 'logo', card: null, zoom: 0 };
 export const Title = {
   scene, cam, S,
   enter() {
-    build(); S.t = 0; S.phase = 'logo'; S.sel = G.hasSave() ? 1 : 0; S.opts = G.hasSave() ? ['NUEVA PARTIDA', 'CONTINUAR'] : ['NUEVA PARTIDA']; S.zoom = 0; S.card = null;
+    build(); S.t = 0; S.phase = 'logo'; S.sel = G.hasSave() ? 1 : 0; S.opts = G.hasSave() ? ['Partida nueva', 'Continuar'] : ['Partida nueva']; S.zoom = 0; S.card = null;
     U.uDark.value = 0; U.uFogR.value.set(900, 999); U.uAmb.value = 0.5; U.uPL.value.forEach(p => { p.w = 0; });
     audio.music('title', { fade: 0.5 });
     UI.over = (t, dt) => Title.draw(t, dt);
@@ -88,7 +88,7 @@ export const Title = {
       if (input.hit('up') || input.hit('down')) { S.sel = (S.sel + 1) % S.opts.length; audio.sfx('menuMove'); }
       if (input.hit('a') || input.hit('start')) {
         audio.init(); audio.sfx('select'); S.phase = 'go';
-        const cont = S.opts[S.sel] === 'CONTINUAR';
+        const cont = S.opts[S.sel] === 'Continuar';
         run(cont ? G.startContinue() : G.startNew());
       }
     }
@@ -102,26 +102,30 @@ export const Title = {
     const parts = [[0, 36], [38, 32], [70, 32], [102, 32]];
     parts.forEach(([x0, w], i) => { const k = clamp((S.t - 0.25 - i * 0.16) / 0.5); if (k <= 0) return; const dy = Math.round((1 - ease.bounce(k)) * -70 - out * 80); t.blit(logo, x0, 0, w, 40, lx + x0 + 2, ly + dy + 2, { solid: 0 }); t.blit(logo, x0, 0, w, 40, lx + x0, ly + dy); });
     if (S.t > 1.2) {
-      const k = ease.out3(clamp((S.t - 1.2) / 0.4)), sw = Math.round(118 * k), y = ly + 44 - Math.round(out * 80);
-      t.rect(lx, y, sw, 9, 8); t.rect(lx, y + 8, sw, 1, 2); t.setClip(lx, y, sw, 9); t.text('EL MUNDO DE SIETE CAPAS', lx + 4, y + 2, 7); t.setClip(null);
+      const k = ease.out3(clamp((S.t - 1.2) / 0.4)), sub = 'El mundo de siete capas', sw = Math.round((textW(sub) + 14) * k), y = ly + 45 - Math.round(out * 80);
+      t.rect(lx, y - 1, sw, 13, 0); t.rect(lx, y, sw, 11, 8); t.rect(lx, y + 10, sw, 1, 2); t.setClip(lx, y, sw, 11); t.text(sub, lx + 7, y + 2, 7); t.setClip(null);
     }
     if (S.phase === 'menu' || S.phase === 'go') {
       const k = ease.back(clamp((S.t - 1.7) / 0.35)) * (1 - out);
       S.opts.forEach((o, i) => {
-        const y = 110 + i * 14, x = lx + 12 - Math.round((1 - k) * 90), sel = i === S.sel;
-        if (sel) { t.rrect(x - 4, y - 3, textW(o) + 9, 11, 0, 2); t.rrect(x - 3, y - 2, textW(o) + 7, 9, 9, 1); t.spr(ICON.lagrima, x - 15 + Math.round(Math.sin(S.t * 6) * 2), y - 3); }
-        t.textS(o, x, y, sel ? 7 : 13, 0);
+        const y = 106 + i * 16, x = lx + 14 - Math.round((1 - k) * 110), sel = i === S.sel, ow = textW(o) + 14;
+        t.rrect(x - 1, y - 4, ow + 2, 15, 0, 2); t.rrect(x, y - 3, ow, 13, sel ? 9 : 1, 2); t.rect(x + 2, y - 2, ow - 4, 1, sel ? 10 : 13); t.rect(x + 1, y + 8, ow - 2, 1, sel ? 4 : 0);
+        if (sel) t.spr(ICON.lagrima, x - 12 + Math.round(Math.sin(S.t * 6) * 2), y - 3);
+        t.text(o, x + 7, y, sel ? 0 : 6);
       });
-      if (k > 0.9 && Math.floor(S.t * 1.6) % 2) t.text('ESPACIO O INTRO', lx + 12, 146, 5);
-      t.text('WASD MOVER · ESPACIO ACCIÓN · J HOJA · MAYÚS FIJAR · U I O OBJETOS', 8, H - 9, 2);
+      if (k > 0.9) {
+        if (Math.floor(S.t * 1.6) % 2) t.textS('Pulsa Espacio', lx + 14, 106 + S.opts.length * 16 + 2, 7, 0);
+        const c1 = 'WASD mover · Espacio acción · J la Hoja', c2 = 'Mayús fijar · U I O objetos · Intro pausa';
+        t.rect(0, H - 25, W, 25, 0); t.rect(0, H - 25, W, 1, 2); t.textC(c1, W / 2, H - 21, 13); t.textC(c2, W / 2, H - 11, 13);
+      }
     }
   },
   // ── la leyenda ──
   drawCard(t, dt) {
-    t.rect(0, 0, W, 16, 0); t.rect(0, H - 44, W, 44, 0);
+    t.rect(0, 0, W, 16, 0); t.rect(0, H - 46, W, 46, 0); t.rect(0, H - 47, W, 1, 2); t.rect(0, 16, W, 1, 2);
     const c = S.card; if (!c) return; c.t += dt;
     let n = Math.floor(c.t * 26);
-    c.lines.forEach((l, i) => { const w = textW(plain(l)); const used = drawRich(t, l, (W - w) >> 1, H - 36 + i * 10 + (3 - c.lines.length) * 5, 7, n, G.t); n -= used; });
+    c.lines.forEach((l, i) => { const w = textW(plain(l)); const used = drawRich(t, l, (W - w) >> 1, H - 38 + i * 12 + (3 - c.lines.length) * 6, 'oscuro', n, G.t); n -= used; });
     c.done = n >= 0;
   },
   *card(text, hold = 2.3) {
@@ -146,7 +150,7 @@ export const Title = {
       yield* all(G.fade(0, 0.6, 0), G.cam.to(b[0], b[1], b[2], b[3], b[4], b[5], 7, 36, x => x), Title.card(text));
       yield* G.fade(1, 0.5, 0);
     };
-    yield* shot(TXT.INTRO[1], [0.6, 1.7, 1.6, -4.2, 2.2, -4.2], [-0.4, 2.2, 0.4, -4.2, 2.3, -4.2], true);
+    yield* shot(TXT.INTRO[1], [-1.0, 1.6, -0.2, -4.2, 2.2, -4.2], [-1.7, 2.1, -1.1, -4.2, 2.3, -4.2], true);
     yield* shot(TXT.INTRO[2], [-11, 5.5, 14, 0, 0.8, -4], [-8, 4.4, 11, 0, 0.8, -4], true);
     yield* shot(TXT.INTRO[3], [-13.8, 0.9, 12.2, -16, 0.35, 10], [-14.4, 0.8, 11.6, -16, 0.35, 10], true);
     yield* shot(TXT.INTRO[4], [5, 3.4, 27, 0, -0.8, 18], [3, 2.4, 25, 0, -0.9, 16], false);

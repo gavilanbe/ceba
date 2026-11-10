@@ -1,11 +1,12 @@
 // ui.js — HUD, diálogos, avisos, rótulos de zona, transiciones y la ventana de objeto nuevo.
 import { THREE, W, H, makeSky, U } from './gfx.js';
-import { Tex, T, BAYER, clamp, lerp, ease, textW, up } from './px.js';
+import { Tex, T, BAYER, clamp, lerp, ease, textW, glyph2, LINE } from './px.js';
 import { G, flag, wait } from './state.js';
 import { input, KEYNAME } from './input.js';
 import { audio } from './audio.js';
 import { TXT, ITEMS } from './text.js';
 import { SKINS } from './art/hero.js';
+import { fx, P } from './fx.js';
 
 export const ui = new Tex(W, H);
 
@@ -22,27 +23,35 @@ export const ICON = {
 };
 
 // ───────── piezas de papel de cebolla ─────────
-// panel con borde y vetas. tono: 'papel' (claro) u 'oscuro'
-export function panel(t, x, y, w, h, tone = 'papel') {
-  const P = tone === 'papel' ? { bg: 15, vein: 9, edge: 4, hi: 7, out: 0 } : tone === 'rosa' ? { bg: 14, vein: 8, edge: 2, hi: 15, out: 0 } : { bg: 1, vein: 2, edge: 13, hi: 13, out: 0 };
-  t.rrect(x - 1, y - 1, w + 2, h + 2, P.out, 2); t.rrect(x, y, w, h, P.edge, 2); t.rrect(x + 1, y + 1, w - 2, h - 2, P.bg, 1);
-  // vetas curvas
-  t.setClip(x + 1, y + 1, w - 2, h - 2);
-  for (let k = 0; k < 4; k++) { const cx = x + w * (0.1 + k * 0.3), r = h * (1.6 + k * 0.25); t.ring(cx, y + h + r * 0.72, r, P.vein, 1); }
-  t.setClip(null);
-  t.rect(x + 2, y + 1, w - 4, 1, P.hi);
+const TONE = {
+  papel: { bg: 15, edge: 4, hi: 7, lo: 9, out: 0, ink: 1, a: 8, b: 2, c: 3 },
+  rosa: { bg: 14, edge: 2, hi: 15, lo: 8, out: 0, ink: 1, a: 7, b: 1, c: 3 },
+  oscuro: { bg: 1, edge: 13, hi: 13, lo: 0, out: 0, ink: 7, a: 14, b: 12, c: 11 },
+};
+// panel limpio: borde, luz arriba, sombra abajo. o.orn = esquina con anillos de cebolla (fuera de la zona de texto)
+export function panel(t, x, y, w, h, tone = 'papel', o = {}) {
+  const P = TONE[tone] || TONE.papel;
+  t.rrect(x - 1, y - 1, w + 2, h + 3, P.out, 2); t.rrect(x, y, w, h, P.edge, 2); t.rrect(x + 1, y + 1, w - 2, h - 2, P.bg, 1);
+  t.rect(x + 2, y + 1, w - 4, 1, P.hi); t.rect(x + 2, y + h - 2, w - 4, 1, P.lo);
+  if (o.orn) { const k = t.clip; t.setClip(x + 1, y + 2, o.orn, h - 4); for (let i = 0; i < 4; i++) t.ring(x + 1, y + h - 2, 6 + i * 6, P.lo, 1); t.clip = k; t.rect(x + 1 + o.orn, y + 4, 1, h - 8, P.lo); }
   return P;
 }
 export function header(t, x, y, w, label, c = 8) {
-  t.rect(x, y, w, 9, c); t.rect(x, y + 8, w, 1, 2);
-  t.rect(x + 3, y + 2, 5, 1, 7); t.rect(x + 3, y + 4, 5, 1, 7); t.rect(x + 3, y + 6, 5, 1, 7);
-  t.text(label, x + 12, y + 2, 7);
+  t.rect(x, y, w, 11, c); t.rect(x, y + 10, w, 1, 2);
+  t.rect(x + 4, y + 3, 5, 1, 7); t.rect(x + 4, y + 5, 5, 1, 7); t.rect(x + 4, y + 7, 5, 1, 7);
+  t.text(label, x + 14, y + 2, 7);
+}
+// etiqueta: pastilla con texto centrado en cx
+export function tag(t, cx, y, label, bg = 8, fg = 7, sh = 2) {
+  const w = textW(label) + 10, x = Math.round(cx - w / 2);
+  t.rrect(x - 1, y - 1, w + 2, 12, 0, 2); t.rrect(x, y, w, 10, bg, 1); t.rect(x + 1, y + 9, w - 2, 1, sh); t.text(label, x + 5, y + 2, fg);
+  return w;
 }
 export function button(t, cx, cy, r, c, dark, label, key, pressed) {
   if (pressed) cy += 1;
-  t.disc(cx, cy + 1, r, 0); t.disc(cx, cy, r, dark); t.disc(cx, cy - 1, r - 1, c);
-  t.px(cx - r + 2, cy - 2, 7); t.px(cx - r + 3, cy - 3, 7);
-  if (label) t.text(label, cx - 1, cy - 3, 7);
+  t.disc(cx, cy + 1, r + 1, 0); t.disc(cx, cy, r + 1, 0); t.disc(cx, cy + 1, r, dark); t.disc(cx, cy - (pressed ? 0 : 1), r, c);
+  t.px(cx - r + 2, cy - 3, 7); t.px(cx - r + 3, cy - 4, 7); t.px(cx - r + 2, cy - 2, 7);
+  if (label) t.text3(label, cx - 1, cy - 3, 7);
 }
 // cebolla en corte: anillos = capas. cx, cy centro; n capas vivas; max total
 export function onionGauge(t, cx, cy, n, max, o = {}) {
@@ -57,20 +66,23 @@ export function onionGauge(t, cx, cy, n, max, o = {}) {
   if (n >= 1) { t.disc(cx, cy, core - 1, 7); t.px(cx, cy, 11); t.px(cx, cy - 1, 11); t.px(cx - 1, cy - 1, 7); }
   else { t.px(cx, cy, 5); }
   if (o.crack && n >= 1) { const r = core + n * th; t.line(cx + 1, cy - r, cx + 3, cy - r + 3, 0); t.line(cx + 3, cy - r + 3, cx + 1, cy - r + 5, 0); t.line(cx + 1, cy - r + 5, cx + 4, cy - r + 8, 0); }
-  // brillo
   if (n >= 1) { t.px(cx - R + 3, cy - 3, 7); t.px(cx - R + 4, cy - 4, 7); }
   return R;
 }
 
-// ───────── texto con marcas: *rojo* _azul_ ~onda~ ^verde^ ─────────
-function parse(s) { const out = []; let c = null, wave = false; for (const ch of s) { if (ch === '*') { c = c === 8 ? null : 8; continue; } if (ch === '_') { c = c === 12 ? null : 12; continue; } if (ch === '^') { c = c === 3 ? null : 3; continue; } if (ch === '~') { wave = !wave; continue; } out.push({ ch, c, wave }); } return out; }
+// ───────── texto con marcas: *destacado* _término_ ^verde^ ~onda~ ─────────
+function parse(s) { const out = []; let c = null, wave = false; for (const ch of s) { if (ch === '*') { c = c === 'a' ? null : 'a'; continue; } if (ch === '_') { c = c === 'b' ? null : 'b'; continue; } if (ch === '^') { c = c === 'c' ? null : 'c'; continue; } if (ch === '~') { wave = !wave; continue; } out.push({ ch, c, wave }); } return out; }
 const plain = s => s.replace(/[*_~^]/g, '');
-export function wrap(s, max) {
-  const lines = []; for (const para of s.split('\n')) { let cur = ''; for (const w of para.split(' ')) { if (plain(cur + (cur ? ' ' : '') + w).length > max) { lines.push(cur); cur = w; } else cur += (cur ? ' ' : '') + w; } lines.push(cur); } return lines;
+// parte un texto en líneas que quepan en maxW píxeles
+export function wrap(s, maxW) {
+  const lines = [];
+  for (const para of String(s).split('\n')) { let cur = ''; for (const w of para.split(' ')) { const nx = cur ? cur + ' ' + w : w; if (cur && textW(plain(nx)) > maxW) { lines.push(cur); cur = w; } else cur = nx; } lines.push(cur); }
+  // las marcas abiertas en una línea siguen en la siguiente
+  let open = ''; return lines.map(l => { const full = open + l; for (const m of ['*', '_', '^', '~']) { const n = (full.match(new RegExp('\\' + m, 'g')) || []).length; open = open.replace(m, ''); if (n % 2) open += m; } return full; });
 }
-function drawRich(t, line, x, y, base, n = 1e9, time = 0) {
-  const P = parse(line); let X = x;
-  for (let i = 0; i < P.length && i < n; i++) { const g = P[i]; t.text(g.ch, X, y + (g.wave ? Math.round(Math.sin(time * 9 + i * 0.9) * 1.4) : 0), g.c ?? base); X += 4; }
+function drawRich(t, line, x, y, tone = 'papel', n = 1e9, time = 0) {
+  const P = parse(line), T_ = typeof tone === 'string' ? (TONE[tone] || TONE.papel) : tone; let X = x;
+  for (let i = 0; i < P.length && i < n; i++) { const g = P[i]; t.text(g.ch, X, y + (g.wave ? Math.round(Math.sin(time * 9 + i * 0.9) * 1.4) : 0), g.c ? T_[g.c] : T_.ink); X += glyph2(g.ch).w + 1; }
   return P.length;
 }
 
@@ -91,7 +103,7 @@ export const UI = {
 G.ui = UI;
 
 // aviso de Candela (no bloquea)
-G.hint = (key, dur = 5.5) => { let txt = TXT[key] || key; if (Array.isArray(txt)) txt = txt.join(' '); txt = txt.replace(/@[^|]*\|/g, ''); S.hint = { lines: wrap(txt, 40), t: 0, dur }; if (G.candela) G.candela.call(); };
+G.hint = (key, dur = 5.5) => { let txt = TXT[key] || key; if (Array.isArray(txt)) txt = txt.join(' '); txt = txt.replace(/@[^|]*\|/g, ''); S.hint = { lines: wrap(txt, 196), t: 0, dur }; if (G.candela) G.candela.call(); };
 G.hintOnce = (id, key) => { if (flag('h_' + id)) return; flag('h_' + id, 1); G.hint(key); };
 G.toast = (text, icon) => { S.toasts.push({ text, icon, t: 0 }); audio.sfx('select'); };
 G.areaTitle = (title, sub) => { S.title = { title, sub, t: 0 }; };
@@ -106,7 +118,7 @@ G.say = function* (who, key, o = {}) {
   yield* wait(0.12);
   for (let pg of pages) {
     if (pg[0] === '@') { const i = pg.indexOf('|'); d.name = pg.slice(1, i); pg = pg.slice(i + 1); }
-    const all = wrap(pg, 56);
+    const all = wrap(pg, 250);
     for (let i = 0; i < all.length; i += 3) {
       d.lines = all.slice(i, i + 3); d.n = 0; d.done = false; d.t = 0;
       const total = d.lines.reduce((a, l) => a + plain(l).length, 0); let acc = 0, last = 0;
@@ -125,7 +137,7 @@ G.say = function* (who, key, o = {}) {
 };
 // elegir entre opciones (generador que devuelve el índice)
 G.choose = function* (prompt, opts) {
-  G.lock++; S.dlg = { name: G.speaker ? G.speaker.name : null, lines: wrap(TXT[prompt] ?? prompt, 56), n: 1e9, t: 0, open: 0, done: false, choice: { opts, i: 0 }, tone: 'papel' };
+  G.lock++; S.dlg = { name: G.speaker ? G.speaker.name : null, lines: wrap(TXT[prompt] ?? prompt, 250), n: 1e9, t: 0, open: 0, done: false, choice: { opts, i: 0 }, tone: 'papel' };
   const c = S.dlg.choice; input.pressed = {};
   for (;;) { yield; if (input.hit('up') || input.hit('left')) { c.i = (c.i + opts.length - 1) % opts.length; audio.sfx('menuMove'); } if (input.hit('down') || input.hit('right')) { c.i = (c.i + 1) % opts.length; audio.sfx('menuMove'); } if (input.hit('a')) break; }
   audio.sfx('select'); S.dlg = null; G.lock--; return c.i;
@@ -148,19 +160,28 @@ export function setView(make, o = {}) {
   UI.view = { scene: viewScene, cam: viewCam, spin: viewSpin, dist: s * (o.zoom || 1.0) * 1.6, x: 0, y: 0, w: 10, h: 10, M, tilt: o.tilt ?? 0.35 };
   return M;
 }
+// duración del redoble antes de enseñar el objeto (va con la partitura de audio.js)
+const ROLL = { big: 16 * 60 / 138 / 4, small: 8 * 60 / 144 / 4 };
 G.giveItem = function* (id, o = {}) {
   const it = ITEMS[id]; const p = G.player;
-  if (it.tears) { // premio en lágrimas: sin ventana grande
-    audio.jingle('item'); G.addTears(0); G.save.tears = Math.min(999, G.save.tears + it.tears);
+  if (it.tears) { // premio en lágrimas: sin ventana
+    audio.jingle('item'); yield* wait(ROLL.small); fx.flash(7, 0.08); G.save.tears = Math.min(999, G.save.tears + it.tears); UI.onTears(); p.sqV = 8;
     yield* G.say(null, it.text); return;
   }
-  G.lock++; p.pose = { L: [-0.42, 1.05, 0.2], R: [0.42, 1.05, 0.2] }; p.faceOv = 'happy';
-  const dur = audio.jingle(it.big ? 'itemBig' : 'item');
-  const w = { id, it, t: 0, out: 0 }; S.itemWin = w; setView(it.make, { zoom: it.zoom });
-  if (it.give) it.give();
+  G.lock++;
+  const big = !!it.big, tA = big ? ROLL.big : ROLL.small;
+  const w = { id, it, t: -tA, tA, out: 0, big }; S.itemWin = w;
+  const dur = audio.jingle(big ? 'itemBig' : 'item');
+  // redoble: Ceba se encoge, las chispas acuden
+  p.faceOv = 'effort'; p.pose = { L: [-0.3, 0.5, 0.5], R: [0.3, 0.5, 0.5] };
+  let e = 0; while (e < tA) { const dt = yield; e += dt; p.sqY = lerp(p.sqY, 0.8, 0.12); p.sqV = 0; if (Math.random() < 0.6) { const a = Math.random() * 6.283, r = 2.2; fx.one(P.star, p.pos.x + Math.cos(a) * r, p.pos.y + 0.6 + Math.random(), p.pos.z + Math.sin(a) * r, { vx: -Math.cos(a) * 4, vz: -Math.sin(a) * 4, drag: 1.5, life: 0.45, size: 0.3 }); } }
+  // ¡tachán!
+  w.t = 0; setView(it.make, { zoom: it.zoom }); if (it.give) it.give();
   G.save.items[id] = (G.save.items[id] || 0) + 1;
   if (it.c && !G.save.c.includes(id)) { const i = G.save.c.indexOf(null); if (i >= 0) G.save.c[i] = id; }
-  yield* wait(Math.min(dur, 2.4));
+  fx.flash(7, 0.14); fx.shake(0.14, 0.25); p.sqV = 11; p.faceOv = 'happy'; p.pose = { L: [-0.42, 1.05, 0.2], R: [0.42, 1.05, 0.2] };
+  fx.burst(P.star, p.pos.x, p.pos.y + 1.2, p.pos.z, 16, { speed: 3.5, up: 4, g: 5, life: 0.9, size: 0.42 }); fx.ring(p.pos.x, p.groundY, p.pos.z, { r1: 3.2, t: 0.6, c: 10, th: 0.3 });
+  yield* wait(Math.max(1.6, dur - tA - (big ? 2.4 : 1.2)));
   yield* G.say(null, it.text);
   w.out = 0.001; yield* wait(0.3); S.itemWin = null; setView(null);
   p.pose = null; p.faceOv = null; G.lock--;
@@ -173,7 +194,7 @@ export function drawUI(dt) {
   if (UI.under) UI.under(t, dt);
   S.bars = lerp(S.bars, G.cam ? G.cam.barsT : 0, 0.3);
   const hudWant = play && !G.cine && !S.itemWin ? 1 : 0; S.hud = lerp(S.hud, hudWant, 1 - Math.exp(-12 * dt));
-  const hy = Math.round((1 - S.hud) * -40);
+  const hy = Math.round((1 - S.hud) * -46);
 
   if (play && G.cam) {
     // retículo de objetivo
@@ -187,7 +208,7 @@ export function drawUI(dt) {
     const ae = G.actionEnt;
     if (ae && G.lock <= 0 && S.hud > 0.8) {
       G.cam.project(ae.pos.x, ae.pos.y + (ae.hh || 0.5) * 2 + 0.55, ae.pos.z, pr);
-      if (pr.z < 1) { const x = Math.round(pr.x), y = Math.round(pr.y + Math.sin(G.t * 6) * 2); t.disc(x, y + 1, 5, 0); t.disc(x, y, 5, 1); t.disc(x, y - 1, 4, 12); t.text('A', x - 1, y - 3, 7); t.px(x, y + 6, 0); t.px(x, y + 5, 1); }
+      if (pr.z < 1 && pr.y > 44) { const x = Math.round(pr.x), y = Math.round(pr.y + Math.sin(G.t * 6) * 2); t.disc(x, y + 1, 5, 0); t.disc(x, y, 5, 1); t.disc(x, y - 1, 4, 12); t.text3('A', x - 1, y - 3, 7); t.px(x, y + 6, 0); t.px(x, y + 5, 1); }
     }
   }
 
@@ -197,115 +218,133 @@ export function drawUI(dt) {
 
   if (S.hud > 0.02 && sv) {
     // ── capas: la cebolla en corte ──
-    const gx = 20, gy = 19 + hy;
+    const gx = 20, gy = 20 + hy;
     const R = onionGauge(t, gx, gy, p.layers, p.maxLayers, { crack: p.crack, flash: S.healT > 0 || (p.layers === 1 && Math.floor(G.t * 3) % 2 === 0 && p.maxLayers > 1) });
     S.crackT = Math.max(0, S.crackT - dt); S.healT = Math.max(0, S.healT - dt);
     if (S.healT > 0) t.ring(gx, gy, R + 2 + (0.5 - S.healT) * 12, 11, 1);
-    // capa que sale volando
     for (const f of S.layerFx) { f.t += dt; const k = f.t / 0.7, sk = SKINS[Math.min(3, f.i)]; const x = gx + k * 26, y = gy - Math.sin(k * 3.14) * 16 + k * k * 26; t.arc(x, y, 6, 9, k * 9, k * 9 + 3.6, sk.base); t.arc(x, y, 9, 9, k * 9, k * 9 + 3.6, sk.vein); }
     S.layerFx = S.layerFx.filter(f => f.t < 0.7);
-    // ── lágrimas ──
+    // ── lágrimas: pastilla aparte, sin pisar la cebolla ──
     if (S.tearShown !== sv.tears) { const d = sv.tears - S.tearShown; S.tearShown += Math.sign(d) * Math.max(1, Math.floor(Math.abs(d) * 0.2)); }
     S.tearBump = Math.max(0, S.tearBump - dt);
-    const tx = gx + R + 7, ty = gy - 4 + hy * 0 - Math.round(S.tearBump * 12);
-    t.spr(ICON.lagrima, tx, ty - 2); t.spr(ICON.lagrima, tx, ty - 2);
-    const num = String(S.tearShown).padStart(3, '0'); t.textO(num, tx + 9, ty, S.tearBump > 0 ? 10 : 7, 0);
-    // ── botones ──
+    const num = String(S.tearShown).padStart(3, '0'), tx = gx + R + 7, ty = gy - 6 - Math.round(S.tearBump * 10), tw = textW(num) + 17;
+    t.rrect(tx - 1, ty - 1, tw + 2, 13, 0, 2); t.rrect(tx, ty, tw, 11, 1, 2); t.rect(tx + 2, ty + 1, tw - 4, 1, 13);
+    t.spr(ICON.lagrima, tx + 2, ty + 1); t.text(num, tx + 12, ty + 3, S.tearBump > 0 ? 10 : 7);
+    // ── botones: B, A y los tres C, cada uno con su tecla debajo ──
     const pressed = b => input.down[b] && G.lock <= 0;
-    const bx = 226, by = 15 + hy;
-    // B: la Hoja
-    button(t, bx, by + 2, 9, 11, 3, null, null, pressed('b'));
-    if (sv.items.hoja) t.spr(ICON.hoja, bx - 5, by - 3 + (pressed('b') ? 1 : 0)); else t.text('B', bx - 1, by - 1, 3);
-    t.textO(KEYNAME.b, bx - 1, by + 13, 6, 0);
-    // A: lo que toque
+    const bx = 226, by = 18 + hy;
+    button(t, bx, by, 9, 11, 3, null, null, pressed('b'));
+    if (sv.items.hoja) t.spr(ICON.hoja, bx - 5, by - 6 + (pressed('b') ? 1 : 0)); else t.text3('B', bx - 1, by - 3, 3);
+    t.text3O(KEYNAME.b, bx - 1, by + 12, 7, 0);
     const act = G.action || '';
     if (act !== S.lastAction) { S.lastAction = act; S.aPulse = 0.2; } S.aPulse = Math.max(0, S.aPulse - dt);
-    const ax = bx + 23, ay = by + 9 - Math.round(S.aPulse * 14);
+    const ax = bx + 23, ay = by + 7 - Math.round(S.aPulse * 14);
     button(t, ax, ay, 10, 12, 1, null, null, pressed('a'));
-    t.text('A', ax - 1, ay - 3, act ? 7 : 1);
-    if (act) { const lw = textW(act) + 6, lx = ax - (lw >> 1), ly = ay + 12; t.rrect(lx - 1, ly - 1, lw + 2, 9, 0, 2); t.rrect(lx, ly, lw, 7, 12, 1); t.text(act, lx + 3, ly + 1, 7); }
-    else t.textO(KEYNAME.a, ax - 5, ay + 13, 6, 0);
-    // C: objetos
-    const CX = [bx + 46, bx + 59, bx + 72], CY = [by - 2, by + 8, by - 2];
+    t.text3('A', ax - 1, ay - 3 + (pressed('a') ? 1 : 0), 7);
+    if (act) tag(t, ax, ay + 13, act, 12, 7, 1); else t.text3O(KEYNAME.a, ax - 5, ay + 13, 7, 0);
+    const CX = [bx + 47, bx + 64, bx + 81], CY = [by - 2, by - 2, by - 2];
     for (let i = 0; i < 3; i++) {
       const id = sv.c[i], pd = pressed('c' + (i + 1));
       button(t, CX[i], CY[i], 7, 10, 9, null, null, pd);
       if (id && ICON[id]) t.spr(ICON[id], CX[i] - 5, CY[i] - 6 + (pd ? 1 : 0), { map: p.layers <= 1 && id === 'mondador' ? { 8: 5, 14: 5, 6: 5, 2: 5 } : null });
-      t.textO(KEYNAME['c' + (i + 1)], CX[i] - 1, CY[i] + 9, 6, 0);
+      t.text3O(KEYNAME['c' + (i + 1)], CX[i] - 1, CY[i] + 10, 7, 0);
     }
-    // llave mayor
-    if (sv.items.llave && G.level && G.level.name === 'cisterna') t.spr(ICON.llave, 6, 38 + hy);
+    if (sv.items.llave && G.level && G.level.name === 'cisterna' && !flag('jefe')) { t.rrect(5, 40 + hy, 15, 15, 0, 2); t.rrect(6, 41 + hy, 13, 13, 1, 2); t.spr(ICON.llave, 7, 42 + hy); }
   }
 
   // ── jefe ──
   if (G.boss && G.boss.shown) {
-    S.bossShown = lerp(S.bossShown, 1, 0.1); const b = G.boss, w = 150, x = (W - w) >> 1, y = H - 16 + Math.round((1 - S.bossShown) * 20) - bh;
-    t.textO(b.name, x, y - 8, 14, 0); t.rrect(x - 2, y - 1, w + 4, 8, 0, 2); t.rect(x, y + 1, w, 4, 2);
-    const k = clamp(b.hp / b.maxHp); b.lag = lerp(b.lag ?? 1, k, 0.06); t.rect(x, y + 1, Math.round(w * b.lag), 4, 7); t.rect(x, y + 1, Math.round(w * k), 4, 8); t.rect(x, y + 1, Math.round(w * k), 1, 14);
-    for (let i = 1; i < 3; i++) t.rect(x + Math.round(w * i / 3), y + 1, 1, 4, 0);
+    S.bossShown = lerp(S.bossShown, S.title ? 0 : 1, 0.1); const b = G.boss, w = 160, x = (W - w) >> 1, y = H - 14 + Math.round((1 - S.bossShown) * 24) - bh;
+    t.textO(b.name, x, y - 10, 14, 0); t.rrect(x - 2, y - 2, w + 4, 9, 0, 2); t.rect(x, y, w, 5, 2);
+    const k = clamp(b.hp / b.maxHp); b.lag = lerp(b.lag ?? 1, k, 0.06); t.rect(x, y, Math.round(w * b.lag), 5, 7); t.rect(x, y, Math.round(w * k), 5, 8); t.rect(x, y, Math.round(w * k), 1, 14);
+    for (let i = 1; i < 3; i++) t.rect(x + Math.round(w * i / 3), y, 1, 5, 0);
   } else S.bossShown = 0;
 
   // ── rótulo de zona ──
   if (S.title) {
-    const a = S.title; a.t += dt; const D = 3.6;
+    const a = S.title; a.t += dt; const D = 3.8;
     if (a.t > D) S.title = null; else {
-      const cy = 118, n = a.title.length, wd = textW(a.title, 2), x0 = (W - wd) >> 1, out = clamp((a.t - (D - 0.5)) / 0.5);
-      // anillos de adorno
+      const cy = 112, wd = textW(a.title, 2), out = clamp((a.t - (D - 0.5)) / 0.5);
       const rk = ease.out3(clamp(a.t / 0.6)) * (1 - out);
-      if (rk > 0.02) { t.setClip(0, cy - 26, W, 60); for (let i = 0; i < 3; i++) t.arc(W / 2, cy + 64, 96 - i * 6, 97 - i * 6, -1.05 * rk, 1.05 * rk, [9, 14, 7][i]); t.setClip(null); }
-      for (let i = 0; i < n; i++) { const k = clamp((a.t - i * 0.05) / 0.3); if (k <= 0) continue; const dy = Math.round((1 - ease.bounce(k)) * -18 - out * out * 30 * (i % 2 ? 1 : -1)); if (out < 1) t.textO(a.title[i], x0 + i * 8, cy + dy, 7, 0, 2); }
-      if (a.t > 0.7 && out < 0.5) { const sw = textW(a.sub); t.rect((W - sw) / 2 - 4, cy + 16, sw + 8, 9, 8); t.rect((W - sw) / 2 - 4, cy + 24, sw + 8, 1, 2); t.text(a.sub, (W - sw) >> 1, cy + 18, 7); }
+      if (rk > 0.02) { t.setClip(0, cy - 30, W, 28); for (let i = 0; i < 3; i++) t.arc(W / 2, cy + 74, 100 - i * 5, 101 - i * 5, -0.8 * rk, 0.8 * rk, [9, 14, 7][i]); t.setClip(null); }
+      let X = (W - wd) >> 1, i = 0;
+      for (const ch of a.title) { const k = clamp((a.t - i * 0.05) / 0.3); if (k > 0 && out < 1) { const dy = Math.round((1 - ease.bounce(k)) * -18 - out * out * 30 * (i % 2 ? 1 : -1)); t.text(ch, X + 1, cy + dy + 3, 0, 2); t.textO(ch, X, cy + dy, 7, 0, 2); } X += (glyph2(ch).w + 1) * 2; i++; }
+      if (a.t > 0.7 && out < 0.5) tag(t, W / 2, cy + 20, a.sub, 8, 7, 2);
     }
   }
 
   // ── aviso de Candela ──
   if (S.hint) {
     const h = S.hint; h.t += dt; if (h.t > h.dur || (S.dlg && h.t > 0.1)) S.hint = null; else {
-      const k = ease.back(clamp(h.t / 0.3)) * (1 - clamp((h.t - (h.dur - 0.3)) / 0.3)), hh = h.lines.length * 8 + 8, wd = Math.max(...h.lines.map(l => plain(l).length)) * 4 + 26;
-      const x = 6, y = H - 10 - hh + Math.round((1 - k) * 50) - bh;
-      t.rrect(x - 1, y - 1, wd + 2, hh + 2, 0, 2); t.rrect(x, y, wd, hh, 1, 2); t.rect(x + 2, y + 1, wd - 4, 1, 13);
-      t.disc(x + 9, y + (hh >> 1), 6, 0); t.disc(x + 9, y + (hh >> 1), 5, Math.floor(G.t * 6) % 2 ? 10 : 9); t.spr(ICON.candela, x + 6, y + (hh >> 1) - 4);
-      h.lines.forEach((l, i) => drawRich(t, l, x + 20, y + 5 + i * 8, 7, Math.floor(h.t * 60) - i * 40, G.t));
+      const k = ease.back(clamp(h.t / 0.3)) * (1 - clamp((h.t - (h.dur - 0.3)) / 0.3)), hh = h.lines.length * LINE + 9, wd = Math.max(...h.lines.map(l => textW(plain(l)))) + 32;
+      const x = 6, y = H - 8 - hh + Math.round((1 - k) * 60) - bh;
+      panel(t, x, y, wd, hh, 'oscuro');
+      const iy = y + (hh >> 1); t.disc(x + 11, iy, 7, 0); t.disc(x + 11, iy, 6, Math.floor(G.t * 6) % 2 ? 10 : 9); t.spr(ICON.candela, x + 8, iy - 4);
+      let n = Math.floor(h.t * 70); h.lines.forEach((l, i) => { n -= drawRich(t, l, x + 24, y + 6 + i * LINE, 'oscuro', n, G.t); });
     }
   }
   // ── avisos ──
   for (const a of S.toasts) {
-    a.t += dt; const k = ease.back(clamp(a.t / 0.3)) * (1 - clamp((a.t - 2.2) / 0.3)), wd = textW(a.text) + 22, x = (W - wd) >> 1, y = Math.round(-14 + k * 22);
-    t.rrect(x - 1, y - 1, wd + 2, 13, 0, 2); t.rrect(x, y, wd, 11, 3, 2); t.rect(x + 2, y + 1, wd - 4, 1, 11); t.text(a.text, x + 16, y + 3, 7);
-    t.rect(x + 6, y + 6, 5, 2, 4); t.rect(x + 8, y + 2, 1, 4, 11); t.px(x + 7, y + 3, 11); t.px(x + 9, y + 2, 11);
+    a.t += dt; const k = ease.back(clamp(a.t / 0.3)) * (1 - clamp((a.t - 2.2) / 0.3)), wd = textW(a.text) + 26, x = (W - wd) >> 1, y = Math.round(-16 + k * 22);
+    t.rrect(x - 1, y - 1, wd + 2, 15, 0, 2); t.rrect(x, y, wd, 13, 3, 2); t.rect(x + 2, y + 1, wd - 4, 1, 11); t.text(a.text, x + 19, y + 3, 7);
+    t.rect(x + 6, y + 8, 7, 2, 4); t.rect(x + 9, y + 3, 1, 5, 11); t.px(x + 8, y + 4, 11); t.px(x + 10, y + 3, 11);
   }
   S.toasts = S.toasts.filter(a => a.t < 2.5);
 
-  // ── ventana de objeto nuevo ──
+  // ── objeto nuevo: redoble, rayos y ventana ──
   if (S.itemWin) {
     const w = S.itemWin; w.t += dt; if (w.out) w.out += dt;
-    const k = w.out ? 1 - ease.in(clamp(w.out / 0.25)) : ease.back(clamp(w.t / 0.35));
-    const ww = 132, wh = 104, x = (W - ww) >> 1, y = Math.round(lerp(-wh - 10, 8, k));
-    t.rect(x - 2, y - 2, ww + 4, wh + 4, 0);
-    header(t, x, y, ww, '¡OBJETO NUEVO!'); t.rect(x + ww - 9, y + 2, 5, 5, 7); t.rect(x + ww - 8, y + 3, 3, 3, 8);
-    // el visor 3D queda transparente; debajo, su hoja de textura como en picoCAD
-    const vh = 62; t.erase(x, y + 9, ww, vh);
-    t.rect(x, y + 9 + vh, ww, 24, 0);
-    const sheet = UI.view && UI.view.M && (UI.view.M.t || (UI.view.M.tex && UI.view.M.tex.userData.src));
-    if (sheet && w.it.rect) { const r = w.it.rect, sc = Math.min(1, 22 / r[3], (ww - 8) / r[2]); const dw = Math.floor(r[2] * sc), dh = Math.floor(r[3] * sc); for (let j = 0; j < dh; j++) for (let i = 0; i < dw; i++) { const c = sheet.get(r[0] + Math.floor(i / sc), r[1] + Math.floor(j / sc)); if (c !== T) t.px(x + ((ww - dw) >> 1) + i, y + 10 + vh + ((22 - dh) >> 1) + j, c); } t.px(x + ww - 6, y + 12 + vh, 6); t.px(x + ww - 6, y + 15 + vh, 13); t.px(x + ww - 6, y + 18 + vh, 5); }
-    t.rect(x, y + wh - 9, ww, 9, 8); t.text('+', x + 4, y + wh - 7, 7); t.text(w.it.name, x + 12, y + wh - 7, 7);
-    // destellos
-    for (let i = 0; i < 6; i++) { const a = G.t * 1.5 + i * 1.047, rr = 50 + Math.sin(G.t * 3 + i) * 6; const sx = x + ww / 2 + Math.cos(a) * rr * 1.4, sy = y + 40 + Math.sin(a) * rr * 0.5; if (sx < x - 3 || sx > x + ww + 3) t.spr(['.a.', 'a7a', '.a.'], Math.round(sx), Math.round(sy)); }
-    if (UI.view) { UI.view.x = x; UI.view.y = y + 9; UI.view.w = ww; UI.view.h = vh; UI.view.spin.rotation.y += dt * 2.2; }
+    const cx = W / 2, cy = 62, gone = w.out ? clamp(w.out / 0.25) : 0;
+    if (w.t < 0) {
+      // redoble: el velo se cierra y una chispa crece en el centro
+      const k = 1 + w.t / w.tA, lv = k * 9;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (BAYER[(y & 3) * 4 + (x & 3)] < lv) t.d[y * W + x] = 1;
+      const r = 2 + k * 9 + Math.sin(G.t * 40) * 1.5;
+      for (let i = 0; i < 8; i++) { const a = i * 0.785 + G.t * 6, d = (1 - k) * 90 + 14; t.rect(Math.round(cx + Math.cos(a) * d) - 1, Math.round(cy + Math.sin(a) * d) - 1, 2, 2, i % 2 ? 10 : 7); }
+      t.rect(cx - 1, cy - r, 2, r * 2, 10); t.rect(cx - r, cy - 1, r * 2, 2, 10); t.disc(cx, cy, Math.max(1, r * 0.4), 7);
+    } else {
+      const pop = w.out ? 1 - ease.in(gone) : ease.back(clamp(w.t / 0.3));
+      const ww = 148, wh = 112, x = (W - ww) >> 1, y = Math.round(lerp(cy - 30, 6, clamp(pop))), sc = clamp(pop);
+      // velo y rayos que giran detrás
+      const rot = G.t * 0.7, grow = ease.out3(clamp(w.t / 0.5)) * (1 - gone), R1 = 190 * grow, sec = Math.PI / 9;
+      for (let yy = 0; yy < H; yy++) for (let xx = 0; xx < W; xx++) {
+        const th = (BAYER[(yy & 3) * 4 + (xx & 3)] + 0.5) / 16; const dx = xx - cx, dy = (yy - cy) * 1.15, d = Math.sqrt(dx * dx + dy * dy);
+        let c = (1 - gone) * 0.7 > th ? 1 : T;
+        if (d < R1) { const s2 = Math.floor((Math.atan2(dy, dx) + rot) / sec) & 1; if (s2 && (d < 96 || 1 - (d - 96) / 100 > th)) c = d < 60 + Math.sin(G.t * 5) * 4 ? 10 : 9; else if (!s2 && d < 60 + Math.sin(G.t * 5) * 4 && 0.5 > th) c = 9; }
+        if (c !== T) t.d[yy * W + xx] = c;
+      }
+      // destello de la entrada
+      if (w.t < 0.35) { const r = w.t / 0.35 * 150; t.ring(cx, cy, r, 7, 3); t.ring(cx, cy, r * 0.7, 10, 2); }
+      if (sc > 0.5) {
+        t.rect(x - 2, y - 2, ww + 4, wh + 5, 0);
+        header(t, x, y, ww, '¡Objeto nuevo!'); t.rect(x + ww - 10, y + 3, 6, 5, 7); t.rect(x + ww - 9, y + 4, 4, 3, 8);
+        const vh = 66; t.erase(x, y + 11, ww, vh);
+        t.rect(x, y + 11 + vh, ww, 24, 0);
+        const sheet = UI.view && UI.view.M && (UI.view.M.t || (UI.view.M.tex && UI.view.M.tex.userData.src));
+        if (sheet && w.it.rect) { const r = w.it.rect, s3 = Math.min(1, 20 / r[3], (ww - 8) / r[2]); const dw = Math.floor(r[2] * s3), dh = Math.floor(r[3] * s3); for (let j = 0; j < dh; j++) for (let i = 0; i < dw; i++) { const c = sheet.get(r[0] + Math.floor(i / s3), r[1] + Math.floor(j / s3)); if (c !== T) t.px(x + ((ww - dw) >> 1) + i, y + 13 + vh + ((20 - dh) >> 1) + j, c); } }
+        t.rect(x, y + wh - 11, ww, 11, 8); t.rect(x, y + wh - 11, ww, 1, 14);
+        // el nombre entra letra a letra con el acorde final
+        const nm = w.it.name, nw = textW(nm); let X = x + ((ww - nw) >> 1), i = 0;
+        for (const ch of nm) { const k = clamp((w.t - 0.25 - i * 0.04) / 0.2); if (k > 0) t.text(ch, X, y + wh - 9 - Math.round((1 - ease.back(k)) * 6), 7); X += glyph2(ch).w + 1; i++; }
+        if (UI.view) { UI.view.x = x; UI.view.y = y + 11; UI.view.w = ww; UI.view.h = vh; UI.view.spin.rotation.y += dt * (2 + 9 * Math.max(0, 1 - w.t / 0.8)); }
+      } else if (UI.view) UI.view.w = 0;
+      // confeti de estrellas
+      for (let i = 0; i < 14; i++) { const ph = (G.t * (0.5 + (i % 5) * 0.12) + i * 0.37) % 1, sx = (i * 53 + 17) % W, sy = Math.round(ph * (H + 10)) - 5; if ((1 - gone) > 0.3 && (sx < x - 4 || sx > x + ww + 4)) t.spr(i % 3 ? ['.a.', 'a7a', '.a.'] : ['..7..', '..a..', '7a7a7', '..a..', '..7..'], sx + Math.round(Math.sin(ph * 9 + i) * 3), sy); }
+    }
   }
 
   // ── diálogo ──
   if (S.dlg) {
     const d = S.dlg; d.open = Math.min(1, d.open + dt * 7); d.t += dt;
-    const bw = 248, bh2 = 40, x = (W - bw) >> 1, y = H - bh2 - 8 + Math.round((1 - ease.back(d.open)) * 30) - Math.round(S.bars * 4);
-    const P = panel(t, x, y, bw, bh2, d.tone);
-    // borde superior rasgado
-    for (let i = 4; i < bw - 4; i += 5) t.px(x + i + ((i * 7) % 3), y - 1, P.edge);
-    if (d.name) { const nw = textW(d.name) + 10; t.rrect(x + 7, y - 8, nw + 2, 12, 0, 2); t.rrect(x + 8, y - 7, nw, 10, 8, 1); t.rect(x + 9, y - 6, nw - 2, 1, 14); t.text(d.name, x + 13, y - 4, 7); }
-    let n = d.n; const tc = d.tone === 'oscuro' ? 7 : 1;
-    d.lines.forEach((l, i) => { const used = drawRich(t, l, x + 10, y + 8 + i * 10, tc, n, G.t); n -= used; });
-    if (d.choice) { const c = d.choice; let cx = x + 14; const cy = y + 8 + d.lines.length * 10; c.opts.forEach((o, i) => { const sel = i === c.i, ow = textW(o) + 8; if (sel) { t.rrect(cx - 4, cy - 2, ow, 9, 8, 1); t.text('▶', cx - 9 + Math.round(Math.sin(G.t * 10)), cy, 8); } t.text(o, cx, cy, sel ? 7 : 4); cx += ow + 14; }); }
-    else if (d.done) { const by2 = y + bh2 - 9 + Math.round(Math.abs(Math.sin(G.t * 5)) * 3); t.spr(ICON.lagrima, x + bw - 14, by2 - 3); }
+    const bw = 284, bh2 = 46, x = (W - bw) >> 1, y = H - bh2 - 7 + Math.round((1 - ease.back(d.open)) * 34) - Math.round(S.bars * 3);
+    const P_ = panel(t, x, y, bw, bh2, d.tone, { orn: 13 });
+    if (d.name) { const nw = textW(d.name) + 12; t.rrect(x + 9, y - 9, nw + 2, 14, 0, 2); t.rrect(x + 10, y - 8, nw, 12, 8, 2); t.rect(x + 12, y - 7, nw - 4, 1, 14); t.rect(x + 11, y + 2, nw - 2, 1, 2); t.text(d.name, x + 16, y - 5, 7); }
+    let n = d.n; const tx = x + 21;
+    d.lines.forEach((l, i) => { const used = drawRich(t, l, tx, y + 8 + i * 11, P_, n, G.t); n -= used; });
+    if (d.choice) {
+      const c = d.choice; let cx2 = tx + 10; const cy2 = y + 8 + Math.max(1, d.lines.length) * 11 + 3;
+      c.opts.forEach((o, i) => { const sel = i === c.i, ow = textW(o) + 12; if (sel) { t.rrect(cx2 - 1, cy2 - 3, ow + 2, 13, 0, 2); t.rrect(cx2, cy2 - 2, ow, 11, 8, 2); t.rect(cx2 + 1, cy2 + 8, ow - 2, 1, 2); t.text('▶', cx2 - 8 + Math.round(Math.abs(Math.sin(G.t * 7)) * 2), cy2, 8); } else { t.rrect(cx2, cy2 - 2, ow, 11, 9, 2); t.rrect(cx2 + 1, cy2 - 1, ow - 2, 9, 15, 1); } t.text(o, cx2 + 6, cy2, sel ? 7 : 4); cx2 += ow + 14; });
+    } else if (d.done) { const by2 = y + bh2 - 13 + Math.round(Math.abs(Math.sin(G.t * 5)) * 3); t.spr(ICON.lagrima, x + bw - 15, by2); }
   }
 
   // ── daño: viñeta ──
@@ -313,8 +352,7 @@ export function drawUI(dt) {
 
   if (UI.over) UI.over(t, dt);
 
-  // ── destello y fundidos ──
-  if (S.flashK > 0) { /* reservado */ }
+  // ── cortinilla de anillos y fundidos ──
   if (S.iris) {
     const k = S.iris.k, maxR = Math.hypot(W, H) * 0.56, R = (1 - k) * maxR, cx = S.iris.cx, cy = S.iris.cy;
     if (k > 0) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {

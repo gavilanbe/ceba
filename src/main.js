@@ -79,7 +79,7 @@ G.onDeath = () => run(function* () {
   let t0 = 0, fill = 0; const max = G.save.maxLayers;
   UI.top = (t, dt) => {
     t0 += dt; onionGauge(t, W / 2, 70, Math.floor(fill), max, { core: 6, th: 6 });
-    t.textC(TXT.MUERTE, W / 2, 112, 7); if (t0 > 1.4 && fill === 0 && Math.floor(t0 * 2) % 2) t.textC('ESPACIO: VOLVER A BROTAR', W / 2, 128, 13);
+    t.textC(TXT.MUERTE, W / 2, 112, 7); if (t0 > 1.4 && fill === 0 && Math.floor(t0 * 2) % 2) t.textC('Espacio: volver a brotar', W / 2, 130, 13);
   };
   audio.jingle('gameover'); yield* wait(1.4);
   for (;;) { yield; if (input.hit('a') || input.hit('start')) break; }
