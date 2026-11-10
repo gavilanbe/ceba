@@ -125,7 +125,7 @@ G.say = function* (who, key, o = {}) {
 };
 // elegir entre opciones (generador que devuelve el índice)
 G.choose = function* (prompt, opts) {
-  G.lock++; S.dlg = { name: null, lines: wrap(TXT[prompt] ?? prompt, 56), n: 1e9, t: 0, done: false, choice: { opts, i: 0 }, tone: 'papel' };
+  G.lock++; S.dlg = { name: G.speaker ? G.speaker.name : null, lines: wrap(TXT[prompt] ?? prompt, 56), n: 1e9, t: 0, open: 0, done: false, choice: { opts, i: 0 }, tone: 'papel' };
   const c = S.dlg.choice; input.pressed = {};
   for (;;) { yield; if (input.hit('up') || input.hit('left')) { c.i = (c.i + opts.length - 1) % opts.length; audio.sfx('menuMove'); } if (input.hit('down') || input.hit('right')) { c.i = (c.i + 1) % opts.length; audio.sfx('menuMove'); } if (input.hit('a')) break; }
   audio.sfx('select'); S.dlg = null; G.lock--; return c.i;

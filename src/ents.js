@@ -184,6 +184,7 @@ export class Chest extends Ent {
       fx.ring(c.pos.x, c.pos.y + 0.5, c.pos.z, { r1: 1.6, t: 0.4, c: 10 }); fx.flash(7, 0.1);
       p.pose = null; p.faceOv = null;
       yield* G.giveItem(c.item, { from: c, amount: c.amount });
+      if (c.item === 'mondador') G.hint('H_MUDA', 8);
       G.cam.release(0.6); p.set('free'); G.lock--; G.cine = false; G.level.resumeMusic();
     });
   }
@@ -298,6 +299,7 @@ export class Bancal extends Ent {
   }
   update(dt) {
     this.t += dt; this.flag.rotation.y = Math.sin(this.t * 2) * 0.25;
+    if (this.near(4) && (G.player.layers < G.player.maxLayers || G.player.crack) && !this.o.onRoot) G.hintOnce('bancal', 'H_BANCAL');
     if (this.near(5) && rnd() < 0.06) fx.one(P.sqG, this.pos.x + (rnd() - 0.5) * 1.4, this.pos.y + 0.05, this.pos.z + (rnd() - 0.5) * 1.4, { vy: 0.8 + rnd() * 0.6, g: -0.3, life: 1, size: 0.12 });
   }
 }

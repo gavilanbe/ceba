@@ -81,6 +81,7 @@ export function sheetA() {
 let _mA = null, _mAd = null;
 const mA = () => _mA || (_mA = mat(sheetA().tex));
 const mAd = () => _mAd || (_mAd = mat(sheetA().tex, { double: true, bias: -0.3 }));
+let _mCh = null; const mCh = () => _mCh || (_mCh = mat(sheetA().tex, { double: true, bias: -1.1 }));
 let _mT = null; export const tileModelMat = () => _mT || (_mT = mat(tilesTex()));
 export const tileModelMatNew = (o) => mat(tilesTex(), o);
 
@@ -162,7 +163,7 @@ export function makeChive(flower = false) {
   const g = new THREE.Group(), r = flower ? [80, 104, 16, 24] : [64, 104, 16, 24];
   const b = new MB();
   for (let i = 0; i < 3; i++) b.push().rotY(i * 1.05 + 0.3).card(0.8, 1.0, r).pop();
-  const me = b.mesh(mAd()); g.add(me);
+  const me = b.mesh(mCh()); g.add(me);
   return { g, mesh: me, t: sheetA().t };
 }
 export function makeTear(big = false) {
