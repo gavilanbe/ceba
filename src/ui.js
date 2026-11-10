@@ -121,12 +121,21 @@ G.say = function* (who, key, o = {}) {
     const all = wrap(pg, 250);
     for (let i = 0; i < all.length; i += 3) {
       d.lines = all.slice(i, i + 3); d.n = 0; d.done = false; d.t = 0;
-      const total = d.lines.reduce((a, l) => a + plain(l).length, 0); let acc = 0, last = 0;
+      const total = d.lines.reduce((a, l) => a + plain(l).length, 0), flat = d.lines.map(plain).join('');
+      // las letras solo avanzan: la pausa tras un signo es una espera, nunca un paso atrás
+      let acc = 0, pause = 0;
       while (d.n < total) {
-        const dt = yield; G.talking = true;
-        acc += dt * (input.down.b ? 110 : 46); d.n = Math.min(total, Math.floor(acc));
-        if (d.n > last) { const flat = d.lines.map(plain).join(''); const ch = flat[d.n - 1]; if (ch && ch !== ' ' && (d.n % 2 === 0)) audio.sfx('blip', { pitch: voice * (0.92 + Math.random() * 0.16) }); if ('.,!?…'.includes(ch)) acc -= ch === ',' ? 5 : 10; last = d.n; }
-        if (input.hit('a')) { d.n = total; acc = total; }
+        const dt = yield; G.talking = pause <= 0;
+        if (input.hit('a')) { d.n = total; break; }
+        if (pause > 0) { pause -= dt * (input.down.b ? 3 : 1); continue; }
+        acc += dt * (input.down.b ? 110 : 46);
+        while (acc >= 1 && d.n < total) {
+          acc -= 1; d.n++;
+          const ch = flat[d.n - 1];
+          if (ch !== ' ' && d.n % 2 === 0) audio.sfx('blip', { pitch: voice * (0.92 + Math.random() * 0.16) });
+          const nx = flat[d.n];
+          if (d.n < total && nx !== '.' && nx !== '!' && nx !== '?') { if (ch === ',' || ch === ';' || ch === ':') { pause = 0.11; acc = 0; break; } if (ch === '.' || ch === '!' || ch === '?' || ch === '…') { pause = 0.22; acc = 0; break; } }
+        }
       }
       G.talking = false; d.done = true; input.pressed.a = input.pressed.b = false;
       let hold = 0; while (!(input.hit('a') || input.hit('b') || (o.auto && hold > o.auto))) hold += yield;
