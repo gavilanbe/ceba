@@ -93,6 +93,13 @@ export class Tex {
     for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this.px(x + i, y + j, c);
     return this;
   }
+  erase(x, y, w, h) {
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const X = (x + i + this.ox) | 0, Y = (y + j + this.oy) | 0;
+      if (X >= 0 && Y >= 0 && X < this.w && Y < this.h) this.d[Y * this.w + X] = T;
+    }
+    return this;
+  }
   box(x, y, w, h, c) { // contorno
     this.rect(x, y, w, 1, c); this.rect(x, y + h - 1, w, 1, c);
     this.rect(x, y, 1, h, c); this.rect(x + w - 1, y, 1, h, c); return this;

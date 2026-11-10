@@ -9,7 +9,7 @@ export const W = 320, H = 180;
 // uniformes compartidos por todos los materiales (misma referencia)
 export const U = {
   pal: { value: RGB.map(c => new THREE.Vector3(c[0] / 255, c[1] / 255, c[2] / 255)) },
-  uL: { value: new THREE.Vector3(0.35, 0.8, 0.5).normalize() },
+  uL: { value: new THREE.Vector3(0.3, 0.86, 0.36).normalize() },
   uAmb: { value: 0.5 },
   uK: { value: 1.3 },          // cuántos escalones de sombra entre luz y contraluz
   uFog: { value: 1 },
@@ -17,6 +17,8 @@ export const U = {
   uPL: { value: Array.from({ length: 6 }, () => new THREE.Vector4(0, -999, 0, 0)) },
   uTime: { value: 0 },
   uDark: { value: 0 },          // oscuridad global añadida (mazmorra)
+  uQ: { value: 4 },             // escalones de tramado por nivel de sombra
+  uCutXY: { value: new THREE.Vector2() }, uCutZ: { value: 0 }, uCutR: { value: 0 }, uCutP: { value: new THREE.Vector4(0, 0, 0, -999) }, // ventana tramada para ver a Ceba tras un muro
 };
 
 const VERT = /* glsl */`
@@ -55,7 +57,8 @@ out vec4 oC;
 uniform sampler2D map;
 uniform vec3 pal[16];
 uniform vec3 uL;
-uniform float uAmb, uK, uDark;
+uniform float uAmb, uK, uDark, uQ;
+uniform vec2 uCutXY; uniform float uCutZ, uCutR; uniform vec4 uCutP;
 uniform int uFog;
 uniform vec2 uFogR;
 uniform vec4 uPL[6];
@@ -82,6 +85,18 @@ void main() {
   if (c > 15) discard;
   float th = bayer(gl_FragCoord.xy);
   if (uHide > th) discard;
+#ifdef CUT
+  if (uCutR > 0.0 && vZ < uCutZ - 0.7) {
+    vec2 q = (gl_FragCoord.xy - uCutXY) / vec2(uCutR * 1.15, uCutR);
+    float a = 1.0 - length(q);
+    if (a > 0.0 && a * 2.2 > th) discard;
+  }
+  // corte de maqueta: fuera lo que queda entre la cámara y Ceba por encima del suelo
+  if (uCutP.w > -900.0 && vW.y > uCutP.w) {
+    float a = (dot(vW.xz, uCutP.xy) - uCutP.z) / 0.5;
+    if (a > th) discard;
+  }
+#endif
   if (c == uSwapA) c = uSwapB;
   if (uUnlit < 0.5) {
     vec3 n = gl_FrontFacing ? vN : -vN;
@@ -93,7 +108,7 @@ void main() {
       s -= f * f * 3.4;
     }
     s = clamp(s, 0.0, 3.0);
-    s = floor(s * 4.0 + 0.5) / 4.0;
+    s = floor(s * uQ + 0.5) / uQ;
     int lv = int(floor(s));
     if (s - float(lv) > th) lv++;
     for (int i = 0; i < 3; i++) { if (i < lv) c = DK[c]; }
@@ -127,10 +142,10 @@ export function mat(tex, o = {}) {
   const m = new THREE.ShaderMaterial({
     glslVersion: THREE.GLSL3,
     vertexShader: VERT, fragmentShader: FRAG,
-    defines: o.tiled ? { TILED: 1 } : {},
+    defines: { ...(o.tiled ? { TILED: 1 } : {}), ...(o.cut ? { CUT: 1 } : {}) },
     uniforms: {
       pal: U.pal, uL: U.uL, uAmb: U.uAmb, uK: U.uK, uFog: U.uFog, uFogR: U.uFogR, uPL: U.uPL, uTime: U.uTime,
-      uDark: o.noDark ? { value: 0 } : U.uDark,
+      uDark: o.noDark ? { value: 0 } : U.uDark, uQ: U.uQ, uCutXY: U.uCutXY, uCutZ: U.uCutZ, uCutR: U.uCutR, uCutP: U.uCutP,
       map: { value: tex },
       uFlash: { value: 0 }, uFlashC: { value: 7 },
       uBias: { value: o.bias || 0 }, uUnlit: { value: o.unlit ? 1 : 0 }, uHide: { value: 0 }, uNoFog: { value: o.noFog ? 1 : 0 },

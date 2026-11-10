@@ -30,10 +30,6 @@ function paintSkin(t, y0, sk, seed) {
   // brillo pintado, delante a la izquierda
   t.oval(38, y0 + 11, 2, 4, sk.lite); t.rect(37, y0 + 8, 2, 3, 7);
   t.rect(41, y0 + 17, 1, 2, sk.lite);
-  // sombra pintada (lisa) en la franja de detrás
-  t.fn(1, y0 + 6, SL - 1, 28, (i, j, X, Y) => t.get(X, Y) === sk.base ? sk.shade : T);
-  t.fn(SL + 7, y0 + 6, 5, 28, (i, j, X, Y) => t.get(X, Y) === sk.base ? sk.shade : T);
-  t.fn(7 * SL + 1, y0 + 6, 5, 28, (i, j, X, Y) => t.get(X, Y) === sk.base ? sk.shade : T);
 }
 
 const EYES = {
@@ -210,4 +206,14 @@ export function makePeel(tex, layerFrom) {
   const c = new MB().lathe(prof, 8, [0, 0, SW, SH], { from: 3, to: 5 }).mesh(m);
   g.add(a, b, c);
   return { g, a, b, c, m };
+}
+
+// la Hoja suelta, para la ventana de objeto y el menú
+let _heroSheet = null;
+export function makeHojaItem() {
+  if (!_heroSheet) { const t = paintHero(); _heroSheet = { t, tex: texFrom(t) }; }
+  const m = mat(_heroSheet.tex, { double: true, bias: -0.5 });
+  const geo = new MB().lathe([[0.45, 0], [0.5, 0.16], [0.55, 0.19], [1, 0.24], [1, 0.72], [0.62, 0.9], [0.05, 1.0]], 4, [108, 24, 20, 60], { sx: 0.085, sz: 0.028, phase: 0.5 }).build();
+  const g = new THREE.Group(), me = new THREE.Mesh(geo, m); me.position.y = -0.5; const p = new THREE.Group(); p.add(me); p.rotation.z = -0.45; g.add(p);
+  return { g, t: _heroSheet.t };
 }
