@@ -167,6 +167,93 @@ const CALM_B = {
   nz: `v2 [r4 h2 r4 h2]8`,
 };
 
+// ── Capítulo II · La Pulpa ──
+// Motivo de la Pulpa: re–la–si–la–fa–mi (quinta que sube, bordadura en la sexta dórica y caída).
+// En `pulp` suena en dórico y en 6/8; en la sección B se invierte (do–fa–mi–fa–la–si, lidio).
+// En `roots` es el mismo motivo en menor (si bemol), a trozos, y en B aumentado e invertido en p2.
+const PULP_A = {
+  p1: `o4 | d2 a2 b2 a4 f2 | e6 r2 g2 e2 | f2 b-2 d'2 c'4 a2 | g4 e2 c#6
+       | d2 a2 b2 a4 d'2 | f'6 e'2 d'2 b2 | b-2 g2 e-2 g4 b-2 | a8 r4`,
+  p2: `o4 | r6 f2 e2 d2 | g2 a2 b2 c'4 b2 | d6 f4 e2 | c#4 e2 g2 f2 e2
+       | f4 a2 g4 f2 | b4 d'2 c'2 b2 g2 | g6 e-4 d2 | e2 c#2 e2 g2 f2 e2`,
+  tri: `o3 | d8 a,2 d2 | c8 g,2 c2 | b-,8 f2 d2 | a,8 e2 a,2
+        | d8 a,2 f2 | b,8 d2 g2 | e-8 b-,2 e-2 | a,6 e2 c#2 a,2`,
+};
+const PULP_A2 = {
+  ...PULP_A,
+  p1: `o4 | d2 a2 b2 a4 f2 | e6 r2 g2 e2 | f2 b-2 d'2 c'4 a2 | g4 e2 c#4 e2
+       | d'2 a'2 b'2 a'4 f'2 | f'6 e'2 d'2 b2 | b-2 g2 e-2 g4 b-2 | a4 c#'2 d'6`,
+  nz: `v3 [k6 h4 h2 | r6 c2 h2 h2]4`,
+};
+const PULP_B = {
+  p1: `o4 | c'2 f2 e2 f4 a2 | b8 a2 g2 | b2 e2 d2 e4 g2 | a6 c#'4 e'2
+       | f'6 d'2 c'2 b-2 | d-'6 b-2 a-2 b-2 | a2 c'2 f'2 e'4 c'2 | b-4 a2 g2 e2 c#2`,
+  p2: `o3 | a6 c'4 a2 | b4 d'2 g2 a2 b2 | g6 b4 a2 | g2 e2 c#2 e4 g2
+       | b-2 c'2 d'2 f4 d2 | f2 g-2 a-2 f4 d-2 | a6 g4 e2 | g4 e2 c#2 e2 a2`,
+  tri: `o3 | f8 c2 f2 | f8 b,2 d2 | e8 b,2 e2 | a,8 e2 g2
+        | b-,8 f2 d2 | b-,8 d-2 f2 | c8 f2 a2 | a,6 c#2 e2 g2`,
+  nz: `v3 [k6 c2 h2 h2 | t4 h2 c4 h2]4`,
+};
+
+const ROOTS_A = {
+  p1: `o5 | r8 d2 a2 b-4 | a6 f2 e4 r4 | r8 e2 b-2 c'4 | b-6 g#2 a4 r4
+       | r4 d2 a2 b-2 a2 f2 e2 | e-6 d2 c#4 r4 | r4 f2 c'2 d-'2 c'2 a-2 g2 | b-4 g#4 a4 r4`,
+  p2: `o4 | [d2 e-2 r2 d2 c#2 r2 d2 r2]2 | e2 f2 r2 e2 d#2 r2 e2 r2 | a2 b-2 r2 a2 g#2 r2 a2 r2
+       | [d2 c#2 r2 d2 e-2 r2 d2 r2]2 | f2 g-2 r2 f2 e2 r2 f2 r2 | a2 r2 g#2 a2 r2 b-2 a2 r2`,
+  tri: `o3 | d4 c4 b-,4 a,4 | g,4 a,4 b-,4 b,4 | c4 b-,4 g,4 g#,4 | a,4 g,4 f,4 e,4
+        | d4 e4 f4 d4 | g,4 g#,4 a,4 c#4 | f4 e-4 d-4 c4 | b-,4 g#,4 a,4 a,2 c#2`,
+  nz: `v4 [k4 r4 c2 r2 r4 | r8 t4 c2 c2]4`,
+};
+const ROOTS_B = {
+  p1: `o5 w0 | r4 b-2 a2 r4 g2 f#2 | r4 c'2 b-2 r2 a2 g4 | r2 d'2 c#'2 d'2 r2 f'4 e'2 | r4 e-'2 d'2 c'2 a2 f#4
+       | r4 f'2 e-'2 r4 d'2 b-2 | r4 a2 b-2 r2 c'2 d'4 | r2 f'2 e'2 f'2 r2 a-'4 g'2 | r2 g'2 e'2 c#'2 b-2 a2 g2 e2`,
+  p2: `o4 @1 v7 | g8 d'8 | e-'8 d'8 | b-8 a4 g4 | f#12 r4
+       | d'8 g8 | f#8 g8 | b-8 c'4 d-'4 | ~8 r8`,
+  tri: `o3 | g,4 a,4 b-,4 c4 | d4 c4 b-,4 a,4 | e-4 d4 c4 b-,4 | a,4 f#,4 d4 c4
+        | b-,4 a,4 g,4 b-,4 | a,4 d4 g,4 f,4 | e-4 e4 f4 g-4 | a,4 r4 a,4 a,2 c#2`,
+  nz: `v5 [k4 c2 c2 r4 t4 | k4 r2 k2 r2 c2 t4]4`,
+};
+
+// Cavador: 7/8 (2+2+3). El riff muerde la segunda rebajada y salta al tritono.
+const BOSS2_RIFF = `b,2 b,2 _c2 b,2 r2 _f2 _d2`;
+const BOSS2_A = {
+  p1: `o4 | r2 b2 d'2 f'4 e'2 d'2 | c'4 b6 r4 | r2 b2 d'2 f'4 g'2 a-'2 | g'6 e-'4 c'4
+       | r2 b2 d'2 f'2 a-'2 b'4 | a'4 f#'4 d'2 c'2 b2 | b-'6 a'2 g'2 d'4 | c#'4 e'4 a#'6`,
+  p2: `o4 @3 | r4 f#2 r2 f#2 r2 g2 | r4 f#2 r2 f#2 a2 g2 | r4 f#2 r2 f#2 r2 g2 | r4 e2 r2 e2 r2 g2
+       | @1 d6 f4 e4 | f#6 e4 d4 | d6 g4 b-4 | e6 c#4 a#,4`,
+  tri: `o3 | [${BOSS2_RIFF}]3 | a,2 a,2 _b-,2 a,2 r2 _e-2 _c2
+        | [${BOSS2_RIFF}]2 | g,2 g,2 _a-,2 g,2 r2 _d2 _b-,2 | f#,2 f#,2 _g,2 f#,2 a#,2 c#2 e2`,
+  nz: `v8 [k2 h2 k2 s2 h2 k2 s2]7 k2 k2 s2 s2 s2 s1 s1 s2`,
+};
+const BOSS2_B = {
+  p1: `o4 | a8 g#2 a4 | d'6 c'4 b-4 | c'8 b2 c'4 | f'6 e-'4 d-'4
+       | e-'8 d'2 e-'4 | a-'6 g-'4 f'4 | f#'4 e'2 c#'2 a#2 c#'2 e'2 | f#'6 g'4 a#'4`,
+  p2: `o4 | r4 f2 e2 d2 f4 | f6 a4 g4 | r4 a-2 g2 f2 a-4 | a-6 c'4 b-4
+       | r4 c'2 b-2 a-2 c'4 | c'6 e-'4 d-'4 | @3 a#4 r2 a#2 r2 c#'2 r2 | @1 c#'6 e'4 e'4`,
+  tri: `o3 | [d2 d2 _e-2 d2 r2 _a-2 _f2]2 | [f2 f2 _g-2 f2 r2 _b2 _a-2]2
+        | [a-2 a-2 _a2 a-2 r2 _d'2 _b2]2 | f#2 f#2 _g2 f#2 r2 _c'2 _a2 | f#2 f#2 f#2 a#2 c#'2 e'2 f#'2`,
+  nz: `v8 [k4 s2 k2 k2 s4]6 [k2 s2]3 s2 | [s1]8 k2 s2 s2`,
+};
+const BOSS2_C = {
+  p2: `o4 v7 w0 l1 | [b c']7 | [d' e-']7 | [f' g-']7 | l2 w1 a# r a# r a# c#' e'`,
+  tri: `o3 | [${BOSS2_RIFF}]3 | f#,2 f#,2 _g,2 f#,2 a#,2 c#2 e2`,
+  nz: `v8 [k4 r4 t2 t2 r2]3 k2 k2 s2 s2 s1 s1 s1 s1 s2`,
+};
+
+// Don Mildiu: vals torcido. Fa–si (tritono)–do, y una baba cromática que resbala hasta la dominante.
+const MILDIU_A = {
+  p1: `o4 | f4 b4 c'4 | a-'8 g'4 | f'4 e'2 e-'2 d'2 d-'2 | c'8 r4
+       | f4 b4 c'4 | b-'8 a-'4 | g-'4 d-'4 b-4 | e4 b-4 d-'4
+       | c'8 a-4 | f8 d4 | b4 d-'4 f'4 | e'8 r4`,
+  p2: `o3 | r4 a-4 g4 | f4 c'2 d-'2 c'2 b-2 | a-8 b4 | b-2 a-2 g2 e2 g4
+       | r4 a-4 g4 | f4 d-'2 e-'2 d-'2 b-2 | b-8 g-4 | g4 r4 b-4
+       | a-2 g2 f2 e-2 f4 | a-8 c'4 | g4 f4 d-4 | b-4 g2 a-2 b-4`,
+  tri: `o3 | f,8 c4 | f,8 a-,4 | d-8 a-,4 | c8 b-,4
+        | f,8 c4 | b-,8 f4 | g-,8 d-4 | c8 e,4
+        | f,8 e-,4 | d8 a-,4 | g,8 d-4 | c6 b-,2 a-,2 g,2`,
+};
+const MILDIU_A2 = { ...MILDIU_A, p1: 'w0 ' + MILDIU_A.p1, nz: `v3 [r4 c4 c4]12` };
+
 const TRACKS = {
   title: {
     bpm: 92, form: 'A A2 B A2',
@@ -219,6 +306,26 @@ const TRACKS = {
     bpm: 84, form: 'A A2 B', echo: 0.4,
     pre: { p1: 'v8 w1 @1 y1', p2: 'v5 w0 @2', tri: 'v10' },
     sections: { A: CALM_A, A2: CALM_A2, B: CALM_B },
+  },
+  pulp: {
+    bpm: 105, form: 'A A2 B A2', echo: 0.4,
+    pre: { p1: 'v9 w1 @1 y1', p2: 'v6 w0 @2', tri: 'v11' },
+    sections: { A: PULP_A, A2: PULP_A2, B: PULP_B },
+  },
+  roots: {
+    bpm: 88, form: 'A B', echo: 0.38,
+    pre: { p1: 'v8 w1 @1 y1', p2: 'v6 w2 @3', tri: 'v11 @3' },
+    sections: { A: ROOTS_A, B: ROOTS_B },
+  },
+  boss2: {
+    bpm: 152, form: 'A B A C A B', echo: 0.1,
+    pre: { p1: 'v10 w2 @1 y1', p2: 'v7 w1 @1', tri: 'v14 @1', nz: 'v8' },
+    sections: { A: BOSS2_A, B: BOSS2_B, C: BOSS2_C },
+  },
+  mildiu: {
+    bpm: 96, form: 'A A2', echo: 0.45,
+    pre: { p1: 'v9 w1 @1 y1', p2: 'v6 w2 @2', tri: 'v11' },
+    sections: { A: MILDIU_A, A2: MILDIU_A2 },
   },
 };
 
@@ -310,6 +417,26 @@ const JINGLES = {
       p1: `o5 d2 f#2 a2 d'2 | c'2 e'2 g'2 c''2 | @1 y1 d''16`,
       p2: `o4 f#8 | g8 | a16`,
       tri: `o3 d8 | c8 | d16`,
+    } },
+  },
+  // Pepita de Oro: arpegio de mi mayor que se abre por la sensible (re#–fa#) hasta un si agudo.
+  seed: {
+    bpm: 150, form: 'A', echo: 0.3, pre: { p1: 'v10 w0 @0', p2: 'v6 w1 @0', tri: 'v11' },
+    sections: { A: {
+      p1: `o5 l1 e g# b e' | d#'2 f#'2 | @1 y1 b'8`,
+      p2: `o4 l2 g# b | f#' a' | @1 e''8`,
+      tri: `o3 e4 b,4 e8`,
+    } },
+  },
+  // Fin del capítulo II: la escalera de `capa` (re, do) baja un peldaño más (si bemol) y vuelve
+  // a re mayor con el motivo de la Pulpa, ahora con tercera mayor.
+  capa3: {
+    bpm: 112, form: 'A', echo: 0.35, pre: { p1: 'v10 w1 @0', p2: 'v7 w2 @2', tri: 'v12', nz: 'v5' },
+    sections: { A: {
+      p1: `o5 d2 f#2 a2 d'2 | c2 e2 g2 c'2 | o4 b-2 d'2 f'2 b-'2 | @1 y1 o5 d2 a2 b2 a2 | f#'2 e'2 d'16`,
+      p2: `o4 f#8 | g8 | f8 | @1 f#4 a4 | a2 g2 f#16`,
+      tri: `o3 d8 | c8 | b-,8 | a,8 | d4 a,4 d12`,
+      nz: `r8 | r8 | r6 h1 h1 | t2 t2 s2 s2 | o4 k4 o12`,
     } },
   },
 };
@@ -592,7 +719,8 @@ const R = () => Math.random();
 // ajuste de mezcla por efecto (los de ruido filtrado salen flojos; los graves largos, fuertes)
 const TRIM = { step: 2.2, stepStone: 2.2, stepWater: 2, jump: 1.6, roll: 1.6, swing1: 3, swing2: 3, swing3: 1.6, hit: 1.5,
   grass: 1.8, menuMove: 2.2, blip: 2.4, talk: 2, target: 1.3, untarget: 1.3, land: 1.4, hurt: 1.4, pot: 1.3, buzz: 1.4,
-  door: 0.6, bossRoar: 0.7, bossDie: 0.6, bars: 0.75, waterRise: 0.8 };
+  door: 0.6, bossRoar: 0.7, bossDie: 0.6, bars: 0.75, waterRise: 0.8,
+  fuse: 1.6, blow: 1.8, seedHit: 1.6, spore: 1.8, worm: 1.5, ammo: 1.5, boom: 0.8, burrow: 0.9 };
 
 const SFX = {
   step: s => s.n(0.05, 0.3, { type: 'lowpass', f0: 900, f1: 300 }).o('sin', 180, 90, 0.04, 0.22),
@@ -667,6 +795,49 @@ const SFX = {
   bucket: s => s.c('saw', [400, 525, 430, 560, 450], 0.32, 0.12, { a: 0.02 }).n(0.3, 0.2, { f0: 900, f1: 1400, q: 3, a: 0.03 }).o('sq', 130, 110, 0.08, 0.25, { t: 0.32 }),
   keyGet: s => s.seq('p12', [1319, 1661, 1976], 0.07, 0.08, 0.28, { last: 0.28 }).o('tri', 988, 988, 0.3, 0.12, { t: 0.14 }),
   firefly: s => s.o('sin', 1760, 1760, 0.08, 0.3).o('sin', 2349, 2349, 0.18, 0.3, { t: 0.1 }).o('tri', 3520, 3520, 0.06, 0.06, { t: 0.1 }),
+  // — capítulo II —
+  fuse: s => {
+    s.n(0.25, 0.14, { type: 'highpass', f0: 5200, f1: 7500, a: 0.02 });
+    for (let i = 0; i < 6; i++) s.n(0.012 + R() * 0.014, 0.4, { t: i * 0.04 + R() * 0.02, f0: 2600 + R() * 3800, q: 3 });
+  },
+  boom: s => s.o('sin', 150, 32, 0.55, 0.9).o('sq', 90, 28, 0.3, 0.4).n(0.12, 0.9, { type: 'lowpass', f0: 5000, f1: 300 })
+    .n(0.9, 0.5, { t: 0.05, type: 'lowpass', f0: 1400, f1: 120, a: 0.02 }),
+  blow: s => s.n(0.09, 0.6, { f0: 700, f1: 2600, q: 1.4, a: 0.004 }).o('sin', 320, 150, 0.06, 0.3).n(0.05, 0.2, { t: 0.05, type: 'highpass', f0: 4000 }),
+  seedHit: s => s.o('tri', 2900, 2300, 0.035, 0.4).o('sin', 4200, 3900, 0.05, 0.2).n(0.012, 0.3, { type: 'highpass', f0: 6000 }),
+  budOn: s => s.o('sin', 1319, 1319, 0.1, 0.32).o('tri', 2637, 2637, 0.06, 0.08)
+    .o('sin', 1976, 1976, 0.3, 0.32, { t: 0.09 }).o('tri', 3951, 3951, 0.16, 0.07, { t: 0.09 }),
+  burrow: s => {
+    s.n(0.5, 0.6, { type: 'lowpass', f0: 180, f1: 320, a: 0.08, q: 2 }).c('sin', [48, 62, 44, 66, 50, 58, 42], 0.5, 0.5, { a: 0.06 });
+    for (let i = 0; i < 5; i++) s.n(0.05, 0.35, { t: i * 0.09 + R() * 0.03, type: 'lowpass', f0: 420 + R() * 200 });
+  },
+  emerge: s => {
+    s.o('sin', 120, 40, 0.2, 0.8).n(0.08, 0.8, { type: 'lowpass', f0: 2500, f1: 300 })
+      .n(0.5, 0.5, { t: 0.03, f0: 300, f1: 4200, q: 0.8, a: 0.05 }).c('saw', [70, 120, 180], 0.35, 0.25, { t: 0.03 });
+    for (let i = 0; i < 5; i++) s.n(0.03, 0.3, { t: 0.2 + R() * 0.3, f0: 900 + R() * 1800, q: 2 });
+  },
+  spore: s => s.n(0.4, 0.4, { f0: 1400, f1: 600, q: 0.7, a: 0.03 }).n(0.3, 0.12, { t: 0.05, type: 'highpass', f0: 5000, a: 0.08 }).o('sin', 260, 180, 0.12, 0.12),
+  shell: s => s.o('sq', 830, 810, 0.07, 0.3).o('sq', 1247, 1230, 0.05, 0.22).o('tri', 2210, 2180, 0.09, 0.15)
+    .n(0.03, 0.6, { f0: 3200, q: 2 }).o('sin', 190, 120, 0.05, 0.3),
+  moldDie: s => {
+    for (let i = 0; i < 8; i++) { const f = 700 - i * 65 + R() * 60; s.o('sin', f, f * 1.6, 0.05, 0.3, { t: i * 0.06 + R() * 0.02 }); }
+    s.n(0.5, 0.25, { type: 'lowpass', f0: 1500, f1: 250, a: 0.03 }).c('tri', [420, 300, 330, 200, 220, 110], 0.5, 0.2);
+  },
+  mildiu: s => {
+    for (let i = 0; i < 5; i++) {
+      const f = 150 - i * 12, t = i * 0.15;
+      s.c('saw', [f * 1.25, f, f * 0.85], 0.11, 0.3, { t }).o('sq', f * 0.5, f * 0.45, 0.11, 0.25, { t });
+      const b = 300 + R() * 200; s.o('sin', b, b * 1.7, 0.04, 0.12, { t: t + 0.07 });
+    }
+    s.n(0.75, 0.15, { type: 'lowpass', f0: 500, f1: 300, q: 4, a: 0.05 });
+  },
+  worm: s => s.c('sin', [520, 760, 640, 700, 480], 0.16, 0.35).c('tri', [1040, 1520, 1280, 1400, 960], 0.16, 0.08),
+  crumble: s => {
+    s.n(0.7, 0.55, { type: 'lowpass', f0: 1800, f1: 250, a: 0.02 }).o('sin', 95, 45, 0.5, 0.4);
+    for (let i = 0; i < 10; i++) s.n(0.03 + R() * 0.03, 0.45, { t: R() * 0.6, f0: 500 + R() * 1800, q: 2 });
+    for (let i = 0; i < 4; i++) s.o('tri', 300 + R() * 300, 150, 0.05, 0.2, { t: 0.05 + R() * 0.5 });
+  },
+  ammo: s => s.o('sq', 1400, 1400, 0.022, 0.3).n(0.012, 0.3, { type: 'highpass', f0: 4000 })
+    .o('sq', 2100, 2100, 0.04, 0.3, { t: 0.07 }).n(0.012, 0.3, { t: 0.07, type: 'highpass', f0: 4000 }),
 };
 
 // ───────────────────────── API ─────────────────────────

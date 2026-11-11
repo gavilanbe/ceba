@@ -1,10 +1,10 @@
 // menu.js — la pausa es una cebolla en corte: cada anillo es una página y pasar de página es pelar una capa.
 import { W, H } from './gfx.js';
 import { Tex, T, BAYER, clamp, lerp, ease, textW } from './px.js';
-import { G, flag, writeSave, run } from './state.js';
+import { G, flag, writeSave, run, saveOpt } from './state.js';
 import { input, KEYNAME } from './input.js';
 import { audio } from './audio.js';
-import { UI, ICON, panel, header, wrap, onionGauge, setView, button, tag } from './ui.js';
+import { UI, ICON, panel, header, wrap, onionGauge, setView, button, tag, layerRow } from './ui.js';
 import { ITEMS, ECO, LAYERS, objective, makeCeba } from './text.js';
 import { Title } from './title.js';
 
@@ -16,7 +16,7 @@ const PAGES = [
 ];
 const PX = 124, PY = 18, PW = 190, PH = 156;
 const bufA = new Tex(W, H), bufB = new Tex(W, H);
-const SLOTS = ['hoja', 'mondador', null, null, null, null, null, null, 'llave', 'capa'];
+const SLOTS = ['hoja', 'mondador', 'ajo', 'cerbatana', null, 'llave', 'llaveRaiz', 'capa', null, null];
 const S = { open: 0, closing: false, page: 0, prev: 0, peel: 1, dir: 1, t: 0, cur: 0, eco: 0, opt: 0, viewKey: null };
 
 export const Menu = {
@@ -42,10 +42,12 @@ export const Menu = {
     } else if (S.page === 2) {
       if (mvy) { S.eco = (S.eco + mvy + ECO.length) % ECO.length; audio.sfx('menuMove'); S.viewKey = null; }
     } else if (S.page === 3) {
-      if (mvy) { S.opt = (S.opt + mvy + 3) % 3; audio.sfx('menuMove'); }
+      if (mvy) { S.opt = (S.opt + mvy + 5) % 5; audio.sfx('menuMove'); }
       if (input.hit('a')) {
         if (S.opt === 0) { audio.muted = !audio.muted; audio.sfx('select'); }
-        else if (S.opt === 1) { sv.layers = G.player.layers; sv.crack = G.player.crack; writeSave(); audio.sfx('secret'); S.saved = 1.5; }
+        else if (S.opt === 1) { G.opt.camAuto = G.opt.camAuto === false; saveOpt(); audio.sfx('select'); }
+        else if (S.opt === 2) { G.opt.invY = !G.opt.invY; saveOpt(); audio.sfx('select'); }
+        else if (S.opt === 3) { sv.layers = G.player.layers; sv.crack = G.player.crack; writeSave(); audio.sfx('secret'); S.saved = 1.5; }
         else { sv.layers = G.player.layers; writeSave(); audio.sfx('select'); Menu.close(); audio.music(null, { fade: 0.4 }); run(function* () { G.lock++; yield* G.fade(1, 0.5, 0); G.lock--; G.mode = 'title'; UI.S.title = null; UI.S.hint = null; Title.enter(); yield* G.fade(0, 0.5, 0); }); }
       }
     }
@@ -116,6 +118,7 @@ export const Menu = {
           t.spr(ICON[id], sx + 4, sy + 3, { scale: 2 });
           const key = id === 'hoja' ? KEYNAME.b : (sv.c.indexOf(id) >= 0 ? KEYNAME['c' + (sv.c.indexOf(id) + 1)] : null);
           if (key) { t.disc(sx + 24, sy + 6, 5, 0); t.disc(sx + 24, sy + 5, 4, id === 'hoja' ? 11 : 10); t.text3(key, sx + 23, sy + 3, 0); }
+          const cnt = id === 'ajo' ? sv.ajos || 0 : id === 'capa' ? sv.items.capa : 0; if (cnt > 1 || id === 'ajo') { const cs = String(cnt); t.textR(cs, sx + 27, sy + 17, 0); t.textR(cs, sx + 26, sy + 16, id === 'ajo' && !cnt ? 8 : 1); }
         } else { t.rect(sx + 13, sy + 12, 4, 2, 4); }
         if (sel) { const b = Math.round(Math.abs(Math.sin(S.t * 6)) * 2); for (const [ax, ay, dx, dy] of [[sx - 2 - b, sy - 2 - b, 1, 1], [sx + 31 + b, sy - 2 - b, -1, 1], [sx - 2 - b, sy + 28 + b, 1, -1], [sx + 31 + b, sy + 28 + b, -1, -1]]) { t.rect(Math.min(ax, ax + dx * 5), ay, 6, 1, 8); t.rect(ax, Math.min(ay, ay + dy * 5), 1, 6, 8); } }
       }
@@ -130,8 +133,8 @@ export const Menu = {
       } else { t.rect(x0 + 2, dy2 + 2, 52, 52, 9); t.rect(x0 + 22, dy2 + 27, 12, 2, 4); t.text('Hueco libre', x0 + 64, dy2, 4); t.text('Aún no hay nada aquí.', x0 + 64, dy2 + 11, 4); if (live && S.viewKey) { S.viewKey = null; setView(null); } }
     } else if (pg === 1) {
       // ── mapa: Bulbo en corte y el sitio donde estás ──
-      const mx = x0 + 46, my = y0 + 62, here = G.level && G.level.name === 'cisterna' ? 1 : 0;
-      const known = i => i === 0 || (i === 1 && flag('cisterna')) || (i === 6 && flag('jefe'));
+      const mx = x0 + 46, my = y0 + 62, here = { villa: 0, cisterna: 1, pulpa: 2, raicera: 2 }[G.level ? G.level.name : 'villa'] || 0;
+      const known = i => i === 0 || (i === 1 && flag('cisterna')) || (i === 2 && flag('pulpa')) || (i === 3 && flag('fin2')) || (i === 6 && flag('jefe'));
       t.text('Bulbo en corte', x0, y0, 4);
       for (let i = 0; i < 7; i++) {
         const r1 = 46 - i * 6;
@@ -146,10 +149,17 @@ export const Menu = {
       const L = G.level; if (L) {
         t.rect(bx + 1, by + 1, bw - 2, 11, 4); t.text(L.title, bx + 4, by + 3, 15);
         t.setClip(bx + 1, by + 12, bw - 2, bh - 13);
-        if (L.name === 'cisterna') {
-          const sc = 0.95, ox2 = bx + bw / 2, oz2 = by + 120; const X = x => Math.round(ox2 + x * sc), Z = z => Math.round(oz2 + z * sc * 1.35);
+        if (L.map) {
+          const M = L.map, sc = Math.min((bw - 8) / (M.x1 - M.x0), (bh - 20) / ((M.z1 - M.z0) * 1.35)), X = x => Math.round(bx + bw / 2 + (x - (M.x0 + M.x1) / 2) * sc), Z = z => Math.round(by + 12 + (bh - 12) / 2 + (z - (M.z0 + M.z1) / 2) * sc * 1.35);
+          t.rect(X(M.x0), Z(M.z0), X(M.x1) - X(M.x0), Z(M.z1) - Z(M.z0), 15); t.box(X(M.x0), Z(M.z0), X(M.x1) - X(M.x0), Z(M.z1) - Z(M.z0), 14);
+          for (const [a, b, c, d, col] of M.rects) t.rect(X(a), Z(b), X(c) - X(a), Z(d) - Z(b), col);
+          for (const [x, z, col] of M.marks) t.rect(X(x) - 1, Z(z) - 1, 3, 3, col);
+          if (Math.floor(S.t * 4) % 2) t.rect(X(p.pos.x) - 1, Z(p.pos.z) - 1, 3, 3, 8);
+        } else if (L.rooms.length) {
+          const tall = L.name === 'raicera', sc = tall ? 1.02 : 0.95, ox2 = bx + bw / 2 + (tall ? 0 : 0), oz2 = by + (tall ? 113 : 120); const X = x => Math.round(ox2 + x * sc), Z = z => Math.round(oz2 + z * sc * 1.35);
           for (const r of L.rooms) { if (!sv.rooms[r.id]) continue; const rw = Math.round((r.x1 - r.x0) * sc), rh = Math.round((r.z1 - r.z0) * sc * 1.35); t.rect(X(r.x0), Z(r.z0), rw, rh, 2); t.box(X(r.x0), Z(r.z0), rw, rh, 14); }
-          if (sv.rooms.r2) t.rect(X(-9) + 1, Z(-41), Math.round(18 * sc) - 2, Math.round(13 * sc * 1.35), flag('agua') ? 12 : 0);
+          if (L.name === 'cisterna' && sv.rooms.r2) t.rect(X(-9) + 1, Z(-41), Math.round(18 * sc) - 2, Math.round(13 * sc * 1.35), flag('agua') ? 12 : 0);
+          if (tall && sv.rooms.r4) t.rect(X(18), Z(-41), Math.round(8.5 * sc), Math.round(20 * sc * 1.35), flag('savia') ? 10 : 0);
           if (Math.floor(S.t * 4) % 2) t.rect(X(p.pos.x) - 1, Z(p.pos.z) - 1, 3, 3, 10);
         } else {
           const X = x => Math.round(bx + bw / 2 + x * 1.08), Z = z => Math.round(by + 72 + z * 1.75);
@@ -161,9 +171,10 @@ export const Menu = {
       }
     } else if (pg === 2) {
       // ── cuaderno: el ecosistema ──
-      const know = e => sv.seen[e.id] || ['cebollino', 'bicho', 'ajo', 'candela'].includes(e.id);
-      ECO.forEach((e, i) => { const sel = i === S.eco, yy = y0 + i * 11; if (sel) { t.rrect(x0 - 3, yy - 3, 72, 11, 8, 2); t.rect(x0 - 2, yy + 7, 70, 1, 2); } t.text(know(e) ? e.name : '· · ·', x0 + 2, yy - 1, sel ? 7 : know(e) ? 1 : 9); });
-      const e = ECO[S.eco], kn = know(e), vx = x0 + 78, vy = y0 - 1, vw = CW - 78, vh = 52;
+      const know = e => sv.seen[e.id] || e.always;
+      const top = clamp(S.eco - 5, 0, Math.max(0, ECO.length - 12));
+      ECO.forEach((e, i) => { if (i < top || i >= top + 12) return; const sel = i === S.eco, yy = y0 + (i - top) * 11; if (sel) { t.rrect(x0 - 3, yy - 3, 72, 11, 8, 2); t.rect(x0 - 2, yy + 7, 70, 1, 2); } t.text(know(e) ? e.name : '· · ·', x0 + 2, yy - 1, sel ? 7 : know(e) ? 1 : 9); });
+      const e0 = ECO[S.eco], e = e0.id === 'mildiu' && !flag('fin2') ? { ...e0, make: null } : e0, kn = know(e), vx = x0 + 78, vy = y0 - 1, vw = CW - 78, vh = 52;
       frame(vx, vy, vw, vh + 11);
       if (kn && e.make && live) { t.erase(vx, vy, vw, vh); if (S.viewKey !== 'e' + e.id) { S.viewKey = 'e' + e.id; setView(e.make, { sky: [12, 12, 12, 12], zoom: 0.85 }); } const v = UI.view; if (v) { v.x = vx; v.y = vy; v.w = vw; v.h = vh; v.spin.rotation.y += dt * 1.4; } }
       else { t.rect(vx, vy, vw, vh, kn && e.make ? 12 : 1); if (!kn || !e.make) t.text('?', vx + (vw >> 1) - 6, vy + 16, 2, 3); if (live && S.viewKey) { S.viewKey = null; setView(null); } }
@@ -177,14 +188,13 @@ export const Menu = {
       else t.rect(vx, vy, 68, 78, 12);
       const sx = x0 + 80, sw = CW - 80; let yy = y0;
       t.text('Ceba, la dulce', sx, yy, 8); yy += 13;
-      onionGauge(t, sx + 12, yy + 12, p.layers, p.maxLayers, { crack: p.crack }); t.text('Capas', sx + 30, yy + 3, 4); t.text(`${p.layers} de ${p.maxLayers}`, sx + 30, yy + 13, 1); yy += 31;
+      t.text(`Capas: ${p.layers} de ${p.maxLayers}`, sx, yy, 4); layerRow(t, sx + 1, yy + 11, p.layers, p.maxLayers, p.crack, { sp: 12 }); yy += 27; t.text('Cada capa: 2 golpes', sx, yy, 1); yy += 13;
       const cried = Object.keys(sv.flags).filter(f => f.startsWith('lloro_')).reduce((a, f) => a + sv.flags[f], 0);
-      for (const [a, b] of [['Lágrimas', sv.tears], ['Veces en nada', sv.deaths], ['Vecinos llorados', cried]]) { t.text(a, sx, yy, 4); t.textR(String(b), sx + sw, yy, 1); t.rect(sx, yy + 8, sw, 1, 9); yy += 12; }
-      yy = y0 + 92; t.rect(x0, yy - 6, CW, 1, 9);
-      const opts = [`Sonido: ${audio.muted ? 'no' : 'sí'}`, S.saved > 0 ? '¡Guardado!' : 'Guardar partida', 'Salir al título'];
+      for (const [a, b] of [['Pepitas de oro', `${sv.pepitas || 0}`], ['Vecinos llorados', cried]]) { t.text(a, sx, yy, 4); t.textR(String(b), sx + sw, yy, 1); yy += 10; }
+      yy = y0 + 88; t.rect(x0, yy - 5, CW, 1, 9);
+      const opts = [`Sonido: ${audio.muted ? 'no' : 'sí'}`, `Cámara: ${G.opt.camAuto !== false ? 'te sigue sola' : 'solo a mano'}`, `Mirar arriba/abajo: ${G.opt.invY ? 'invertido' : 'normal'}`, S.saved > 0 ? '¡Guardado!' : 'Guardar partida', 'Salir al título'];
       if (S.saved > 0) S.saved -= dt;
-      opts.forEach((o, i) => { const sel = i === S.opt, y = yy + i * 13, ow = textW(o) + 12; if (sel) { t.rrect(x0 + 13, y - 3, ow + 2, 13, 0, 2); t.rrect(x0 + 14, y - 2, ow, 11, 8, 2); t.rect(x0 + 15, y + 8, ow - 2, 1, 2); t.spr(ICON.lagrima, x0 + 2 + Math.round(Math.sin(S.t * 6) * 1.5), y - 2); } t.text(o, x0 + 20, y, sel ? 7 : 1); });
-      t.textR('Espacio: elegir', x0 + CW, yy + 27, 4);
+      opts.forEach((o, i) => { const sel = i === S.opt, y = yy + i * 9, ow = textW(o) + 12; if (sel) { t.rrect(x0 + 13, y - 3, ow + 2, 13, 0, 2); t.rrect(x0 + 14, y - 2, ow, 11, 8, 2); t.rect(x0 + 15, y + 8, ow - 2, 1, 2); t.spr(ICON.lagrima, x0 + 2 + Math.round(Math.sin(S.t * 6) * 1.5), y - 2); } t.text(o, x0 + 20, y, sel ? 7 : 1); });
     }
   },
 };

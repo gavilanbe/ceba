@@ -8,6 +8,9 @@ import { Ent, Chive, Pot, Sign, Chest, Bars, Slab, Plate, Block, Bancal, Statue,
 import { NPC, Bicho, Pulgon, Babosa, Trips } from './creatures.js';
 import { Tapona } from './boss.js';
 import * as S from './story.js';
+import * as S2 from './story2.js';
+import { Breakable, Yema, Pepita, Seta } from './ents2.js';
+import { pulpa, raicera } from './levels2.js';
 import { rng } from './px.js';
 import { fx, P, rnd } from './fx.js';
 import { audio } from './audio.js';
@@ -94,6 +97,13 @@ export function villa() {
   L.zone(20, -3, 23, 3, () => { if (!flag('hoja')) G.hintOnce('pulgones', 'H_PULGONES'); });
   L.zone(8, -3, 14, 3, () => G.hintOnce('rodar', 'H_RODAR'));
 
+  // ── la Yaya Morada, junto al estanque, y las pepitas de oro del pueblo ──
+  L.add(new NPC(-9.6, 0, 22.6, 2.2, 'yaya', S2.yayaTalk)); L.add(new Sign(-7.6, 0, 24.6, 2.8, 'C_YAYA'));
+  if (done) { L.add(new Seta(-24.6, 0, -26.2)); L.add(new Seta(8.2, 0, 26.4, { s: 0.7, power: 9 })); }
+  if (!flag('pp_villa1')) L.add(new Pepita(-30, 2.7, -27, 'pp_villa1'));
+  if (!flag('rocaVilla')) { const pp = flag('pp_villa2') ? null : L.add(new Pepita(31.5, 1.3, 5.5, 'pp_villa2', { hidden: true })); L.add(new Breakable(31.5, 1, 5.5, 2, 1.9, 2, { kind: 'grieta', key: 'rocaVilla', onBreak: () => pp && pp.appear() })); }
+  else if (!flag('pp_villa2')) L.add(new Pepita(31.5, 1.3, 5.5, 'pp_villa2'));
+  { const pp = flag('pp_villa3') ? null : L.add(new Pepita(0, 0.4, -27.4, 'pp_villa3', { hidden: !flag('yemaVilla') })); L.add(new Yema(0, 3.6, -29.95, 0, { wall: true, key: 'yemaVilla', s: 1.5, onOn: () => pp && pp.appear(0, 3, -28.6) })); }
   // cielo: sol y la tira de piel que alguien está pelando
   const sun = A.makeSkyCard([0, 40, 32, 32], 26, 26); sun.position.set(70, 62, -120); sun.lookAt(0, 10, 0); L.group.add(sun);
   const strip = A.makeSkyCard([32, 40, 64, 24], 90, 30); strip.position.set(-80, 70, -140); strip.rotation.set(0.2, 0.5, -0.5); L.group.add(strip); L.strip = strip;
@@ -134,7 +144,11 @@ export function cisterna() {
 
   // ── R1: sala de los pulgones ──
   fl(-6, -20, 6, -8); L.decal(-1, -20, 1, -8, 0, TI.canalD); for (const [x, z] of [[-4, -11], [3, -17], [-2, -15]]) L.decal(x, z, x + 1, z + 1, 0, TI.losaRota);
-  wall(-7, -8, -1.2, -7); wall(1.2, -8, 7, -7); wall(-7, -20, -6, -8); wall(6, -20, 7, -8, 0, WH, { vein: true }); wall(-7, -21, -1.2, -20); wall(1.2, -21, 7, -20);
+  wall(-7, -8, -1.2, -7); wall(1.2, -8, 7, -7); wall(-7, -20, -6, -8); wall(6, -20, 7, -15.2, 0, WH, { vein: true }); wall(6, -11.8, 7, -8, 0, WH, { vein: true }); wall(-7, -21, -1.2, -20);
+  // nicho tras la pared agrietada del este
+  fl(6, -15.2, 9.6, -11.8, 0, TI.losaLagrima); wall(7, -16.2, 10.6, -15.2); wall(7, -11.8, 10.6, -10.8); wall(9.6, -15.2, 10.6, -11.8);
+  if (!flag('grietaCis')) L.add(new Breakable(6.5, 0, -13.5, 1, WH, 3.4, { kind: 'grieta', key: 'grietaCis', cut: true }));
+  if (!flag('pp_cis1')) L.add(new Pepita(8.4, 0.3, -13.5, 'pp_cis1')); wall(1.2, -21, 7, -20);
   room('r1', 'SALA DE LOS PULGONES', -6, -20, 6, -8);
   for (const [x, z] of [[-4.6, -9.6], [4.6, -9.6], [-4.6, -18.4], [4.6, -18.4]]) L.add(new Lantern(x, 0, z, { r: 4.5 }));
   for (let i = 0; i < 9; i++) L.add(new Chive(-5 + r() * 10, 0, -19 + r() * 10));
@@ -172,6 +186,8 @@ export function cisterna() {
   // bancal de la repisa norte y compuerta del desagüe
   L.decal(-7.4, -43.4, -5.4, -41.6, 0, TI.bancal); L.add(new Bancal(-6.4, 0, -42.5, 'cis5')); L.spawn.cis5 = [-4.6, 0, -42.5, 1.57];
   L.bossDoor = L.add(new Slab(0, 0, -44.4, 3.2, 3.4, 'x', { boss: true, needs: 'llave', key: 'puertaJefe' }));
+  { const pp = flag('pp_cis2') ? null : L.add(new Pepita(5.4, 0.4, -42.4, 'pp_cis2', { hidden: !flag('yemaCis') })); L.add(new Yema(5.4, 3, -43.95, 0, { wall: true, key: 'yemaCis', s: 1.2, onOn: () => pp && pp.appear(5.4, 2.6, -43) })); L.light(5.4, 3, -42.8, 2.6); }
+  L.spawn.desague = [0, 0, -61.5, 0];
 
   // ── R3: sala del peso (oeste, al nivel del fondo) ──
   fl(-24, -41, -10, -31, -3); L.decal(-11, -37, -10, -35, -3, TI.canalD);
@@ -222,4 +238,4 @@ export function cisterna() {
   L.tick = dt => { if (L.pool.on) L.pool.mesh.material.uniforms.uScroll.value.set(G.t * 0.03, G.t * 0.02); };
   return L.finish();
 }
-export const LEVELS = { villa, cisterna };
+export const LEVELS = { villa, cisterna, pulpa, raicera };

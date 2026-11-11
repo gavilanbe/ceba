@@ -10,6 +10,8 @@ export const TI = {
   puerta: 24, bloque: 25, corcho: 26, moho: 27, losaOsc: 28, aguaOsc: 29, baba: 30, negro: 31,
   ladrilloV: 32, pilar: 33, bloqueTop: 34, placaOn: 35, puertaJefe: 36, arco: 37, rejilla: 38, luz: 39,
   pielSeca: 40, tablon: 41, cuerda: 42, tejaB: 43, pizarra: 44, losaRota: 45, charco: 46, estratoB: 47,
+  pulpa: 48, pulpaLado: 49, raiz: 50, savia: 51, mohoMuro: 52, grieta: 53, pulpaCamino: 54, raizLosa: 55,
+  raizMuro: 56, raizZocalo: 57, raizCornisa: 58, seta: 59, setaPie: 60, tierraOsc: 61, musgoLuz: 62, puertaRaiz: 63,
 };
 export const cell = i => [(i % 8) * 16, (i >> 3) * 16, 16, 16];
 
@@ -70,6 +72,24 @@ export function paintTiles() {
   at(TI.baba, () => { t.erase(0, 0, 16, 16); t.oval(8, 8, 7, 6, 11); t.oval(5, 6, 2, 1, 10); t.px(10, 10, 3); t.px(11, 5, 7); t.rect(3, 10, 2, 1, 3); });
   at(TI.negro, () => { t.rect(0, 0, 16, 16, 0); });
   at(TI.luz, () => { t.rect(0, 0, 16, 16, 7); });
+
+  // ── la Pulpa: carne blanca y rosada, raíces y savia ──
+  at(TI.pulpa, () => { t.rect(0, 0, 16, 16, 7); for (const [x, y, w] of [[1, 3, 5], [9, 6, 6], [3, 11, 7], [12, 14, 3]]) t.rect(x, y, w, 1, 6); for (const [x, y] of [[7, 1], [13, 3], [2, 7], [10, 10], [5, 14]]) t.px(x, y, 14); t.px(14, 9, 15); t.px(4, 5, 15); });
+  at(TI.pulpaLado, () => { estrato([[3, 7], [1, 15], [4, 14], [2, 7], [3, 14], [3, 2]]); for (let x = 1; x < 16; x += 4) { t.rect(x, 4, 1, 4, 15); t.px(x + 2, 11, 7); } t.rect(0, 0, 16, 1, 7); t.rect(6, 13, 4, 1, 14); });
+  at(TI.pulpaCamino, () => { t.rect(0, 0, 16, 16, 6); t.line(0, 5, 6, 3, 13); t.line(6, 3, 15, 6, 13); t.line(0, 12, 8, 13, 13); t.line(8, 13, 15, 11, 13); t.px(3, 8, 7); t.px(11, 9, 7); t.px(12, 2, 7); });
+  at(TI.raiz, () => { t.rect(0, 0, 16, 16, 15); for (const x of [0, 5, 9, 13]) { t.rect(x, 0, 1, 16, 9); t.rect(x + 1, 0, 1, 16, 7); } t.rect(3, 4, 1, 5, 4); t.rect(11, 9, 1, 6, 4); t.px(7, 2, 4); t.px(7, 12, 9); });
+  at(TI.savia, () => { t.rect(0, 0, 16, 16, 10); t.rect(1, 3, 6, 1, 7); t.rect(9, 8, 5, 1, 7); t.rect(3, 12, 5, 1, 9); t.rect(11, 1, 3, 1, 9); t.px(13, 13, 7); });
+  at(TI.mohoMuro, () => { t.rect(0, 0, 16, 16, 3); for (const [x, y, r] of [[3, 3, 2], [11, 4, 3], [6, 10, 3], [13, 12, 2], [2, 13, 2]]) { t.disc(x, y, r, 1); t.disc(x, y, r - 1, 5); t.px(x, y, 11); } for (const [x, y] of [[7, 2], [1, 8], [10, 14], [14, 8], [8, 6]]) t.px(x, y, 11); t.px(5, 6, 10); t.px(12, 9, 10); });
+  at(TI.grieta, () => { t.rect(0, 0, 16, 16, 6); t.rect(0, 15, 16, 1, 13); t.rect(0, 0, 16, 1, 7); t.line(8, 0, 6, 4, 5); t.line(6, 4, 9, 8, 5); t.line(9, 8, 5, 12, 5); t.line(5, 12, 7, 15, 5); t.line(9, 8, 13, 9, 5); t.line(6, 4, 2, 5, 5); t.line(7, 1, 7, 3, 0); t.line(8, 8, 6, 11, 0); t.px(13, 3, 13); t.px(3, 10, 13); });
+  at(TI.raizLosa, () => { t.rect(0, 0, 16, 16, 4); t.rect(0, 15, 16, 1, 2); t.rect(15, 0, 1, 16, 2); t.rect(0, 0, 16, 1, 9); t.line(0, 6, 6, 8, 2); t.line(6, 8, 15, 5, 2); t.line(4, 15, 7, 9, 2); t.rect(2, 2, 3, 1, 9); t.rect(10, 11, 3, 1, 9); t.px(12, 2, 15); });
+  at(TI.raizMuro, () => { t.rect(0, 0, 16, 16, 2); for (const [x0, y0, x1, y1] of [[0, 3, 5, 0], [3, 16, 7, 6], [7, 6, 10, 0], [10, 16, 13, 9], [13, 9, 16, 5]]) { t.line(x0, y0, x1, y1, 4); t.line(x0 + 1, y0, x1 + 1, y1, 15); } t.px(2, 9, 1); t.px(9, 12, 1); t.px(14, 2, 1); t.px(5, 4, 8); });
+  at(TI.raizZocalo, () => { t.rect(0, 0, 16, 16, 1); t.rect(0, 0, 16, 2, 4); t.rect(0, 2, 16, 1, 2); for (let x = 1; x < 16; x += 5) { t.rect(x, 5, 3, 6, 2); t.rect(x, 5, 3, 1, 4); } t.rect(0, 13, 16, 3, 0); });
+  at(TI.raizCornisa, () => { t.rect(0, 0, 16, 16, 2); t.rect(0, 2, 16, 6, 15); t.rect(0, 2, 16, 1, 7); t.rect(0, 8, 16, 1, 9); for (let x = 0; x < 16; x += 4) { t.rect(x + 1, 4, 2, 3, 14); t.rect(x, 9, 1, 4 + (x % 3), 15); } t.rect(0, 0, 16, 2, 1); });
+  at(TI.seta, () => { t.rect(0, 0, 16, 16, 8); t.box(0, 0, 16, 16, 2); for (const [x, y, r] of [[4, 4, 2], [11, 5, 2.4], [6, 11, 2.4], [13, 12, 1.5]]) { t.disc(x, y, r, 7); } t.rect(1, 1, 14, 1, 14); });
+  at(TI.setaPie, () => { t.rect(0, 0, 16, 16, 7); for (let x = 2; x < 16; x += 4) t.rect(x, 0, 1, 16, 6); t.rect(0, 0, 16, 2, 15); t.rect(0, 2, 16, 1, 6); });
+  at(TI.tierraOsc, () => { t.rect(0, 0, 16, 16, 2); for (const [x, y] of [[2, 3], [9, 2], [12, 9], [5, 11], [14, 14], [1, 14]]) t.rect(x, y, 2, 1, 1); t.px(7, 7, 4); t.px(12, 4, 4); t.px(3, 8, 4); });
+  at(TI.musgoLuz, () => { t.erase(0, 0, 16, 16); for (const [x, y] of [[3, 3], [10, 2], [6, 8], [12, 11], [2, 12]]) { t.rect(x, y, 3, 2, 11); t.px(x + 1, y, 10); t.px(x, y + 2, 3); } t.px(8, 5, 7); t.px(14, 6, 7); });
+  at(TI.puertaRaiz, () => { t.rect(0, 0, 16, 16, 4); t.box(0, 0, 16, 16, 1); t.rect(1, 1, 14, 1, 9); t.rect(1, 1, 1, 14, 9); t.ring(8, 8, 6, 15, 1); t.ring(8, 8, 4, 11, 1); t.rect(6, 6, 4, 4, 0); t.rect(7, 7, 2, 4, 11); t.rect(7, 6, 2, 1, 11); });
   return t;
 }
 
@@ -80,7 +100,7 @@ export function tileMat(kind = 'solid') {
   if (_m[kind]) return _m[kind];
   const o = { tiled: true, cut: kind === 'solid' || kind === 'cut' };
   if (kind === 'water') { o.wave = 0.03; o.unlit = false; }
-  if (kind === 'waterGlow') { o.wave = 0.03; o.unlit = true; }
+  if (kind === 'waterGlow' || kind === 'savia') { o.wave = 0.03; o.unlit = true; }
   if (kind === 'cut') o.double = true;
   if (kind === 'decal') { o.offset = 2; o.depthWrite = false; }
   return (_m[kind] = mat(tilesTex(), o));

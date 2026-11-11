@@ -5,6 +5,7 @@ import { fx, P, rnd } from './fx.js';
 import { audio } from './audio.js';
 import { makePeel } from './art/hero.js';
 import * as A from './art/props.js';
+import { makeAjoBomba } from './art/pulpa.js';
 import { TI, cell, tilesTex } from './art/tiles.js';
 import { clamp, lerp, ease } from './px.js';
 
@@ -42,6 +43,8 @@ G.drop = (x, y, z, o = {}) => {
   const n = o.tears || 0;
   for (let i = 0; i < n; i++) G.level.add(new Tear(x, y + 0.3, z, { big: o.big && i === 0, pop: true }));
   if (o.ring && rnd() < o.ring) G.level.add(new RingPick(x, y + 0.3, z, { pop: true }));
+  // ajos: solo cuando ya se llevan, y más a menudo si no queda ninguno
+  if (o.ajo && flag('ajo') && (G.save.ajos || 0) < 15 && rnd() < (G.save.ajos ? o.ajo : Math.min(1, o.ajo * 2.5))) G.level.add(new AjoPick(x, y + 0.3, z, { pop: true, n: o.ajoN || 1 }));
 };
 let chain = 0, chainT = 0;
 G.addTears = n => {
@@ -66,7 +69,7 @@ export class Peel extends Ent {
   }
 }
 
-class Pick extends Ent {
+export class Pick extends Ent {
   constructor(x, y, z, o = {}) {
     super(x, y, z); this.vel = new THREE.Vector3(); this.life = o.keep ? 1e9 : 14; this.grace = o.pop ? 0.35 : 0; this.rest = !o.pop; this.r = 0.3; this.hover = y;
     if (o.pop) { const a = rnd() * 6.283, s = 1.2 + rnd() * 1.8; this.vel.set(Math.cos(a) * s, 4.5 + rnd() * 2, Math.sin(a) * s); }
@@ -104,6 +107,12 @@ export class RingPick extends Pick {
   take(p) { p.heal(1); }
 }
 
+export class AjoPick extends Pick {
+  constructor(x, y, z, o = {}) { super(x, y, z, o); const b = makeAjoBomba(); b.spark.visible = false; b.g.scale.setScalar(0.62); const sp = new THREE.Group(); sp.add(b.g); this.obj = sp; this.m = { me: b.g, sh: b.sh }; this.n = o.n || 1; this.sync(); }
+  wants() { return (G.save.ajos || 0) < 15; }
+  take(p) { G.save.ajos = Math.min(15, (G.save.ajos || 0) + this.n); audio.sfx('ammo'); if (G.ui) G.ui.onAmmo(); fx.burst(P.star, this.pos.x, this.pos.y + 0.3, this.pos.z, 3, { speed: 1.2, up: 1.5, g: 3, life: 0.35, size: 0.3 }); }
+}
+
 // cebollino: se siega con la Hoja, se aparta al pasar y vuelve a crecer
 export class Chive extends Ent {
   constructor(x, y, z, o = {}) {
@@ -132,7 +141,7 @@ export class Chive extends Ent {
 
 // tinaja: se rompe con la Hoja o rodando
 export class Pot extends Ent {
-  constructor(x, y, z, o = {}) { super(x, y, z); this.m = A.makePot(); this.obj = this.m.g; this.sync(); this.fragile = true; this.loot = o.loot || { tears: 1 + Math.floor(rnd() * 2), ring: 0.12 }; this.r = 0.4; this.hh = 0.4; }
+  constructor(x, y, z, o = {}) { super(x, y, z); this.m = A.makePot(); this.obj = this.m.g; this.sync(); this.fragile = true; this.loot = o.loot || { tears: 1 + Math.floor(rnd() * 2), ring: 0.12, ajo: 0.3 }; this.r = 0.4; this.hh = 0.4; }
   onAdd(L) { L.addSolid(boxSolid(this, 0.62, 0.78, 0.62)); }
   hit() { this.smash(); return true; }
   smash() {
@@ -200,7 +209,7 @@ export class Bars extends Ent {
     b.quadT(A_[0], A_[1], A_[2], A_[3], cell(TI.reja), w, h);
     this.obj = b.mesh(mat(tilesTex(), { tiled: true, double: true, cut: true })); this.sync();
   }
-  onAdd(L) { const t = 0.3; this.sol = L.addSolid(boxSolid(this, this.axis === 'x' ? this.w : t, this.h, this.axis === 'x' ? t : this.w, { noClimb: true, noCam: true })); this.sol.off = this.isOpen; this.obj.position.y = this.pos.y - this.k * (this.h - 0.12); }
+  onAdd(L) { const t = 0.3; this.sol = L.addSolid(boxSolid(this, this.axis === 'x' ? this.w : t, this.h, this.axis === 'x' ? t : this.w, { noClimb: true, noCam: true, seeThru: true })); this.sol.off = this.isOpen; this.obj.position.y = this.pos.y - this.k * (this.h - 0.12); }
   set(open, quiet) {
     if (open === this.isOpen) return; this.isOpen = open; this.sol.off = open;
     if (!quiet) { audio.sfx('bars'); fx.dust(this.pos.x, this.pos.y, this.pos.z, 5, { dark: true, spread: this.w / 3 }); fx.shake(0.06, 0.15); }
@@ -211,8 +220,8 @@ export class Bars extends Ent {
 // puerta de losa que sube
 export class Slab extends Ent {
   constructor(x, y, z, w, h, axis = 'x', o = {}) {
-    super(x, y, z); this.w = w; this.h = h; this.axis = axis; this.boss = !!o.boss; this.isOpen = !!o.open; this.k = this.isOpen ? 1 : 0; this.needs = o.needs; this.key = o.key;
-    const ti = this.boss ? TI.puertaJefe : TI.puerta, t = 0.4;
+    super(x, y, z); this.w = w; this.h = h; this.axis = axis; this.boss = !!o.boss; this.isOpen = !!o.open; this.k = this.isOpen ? 1 : 0; this.needs = o.needs; this.key = o.key; this.lockText = o.lockText;
+    const ti = o.tile ?? (this.boss ? TI.puertaJefe : TI.puerta), t = 0.4;
     const b = new MB(), c = cell(ti), cs = cell(TI.losaOsc);
     const W_ = axis === 'x' ? w : t, D_ = axis === 'x' ? t : w;
     b.box(W_, h, D_, axis === 'x' ? { f: c, b: c, l: cs, r: cs, t: cs } : { l: c, r: c, f: cs, b: cs, t: cs });
@@ -224,7 +233,7 @@ export class Slab extends Ent {
   onAdd(L) { const t = 0.4; this.sol = L.addSolid(boxSolid(this, this.axis === 'x' ? this.w : t, this.h, this.axis === 'x' ? t : this.w, { noClimb: true })); this.sol.off = this.isOpen; this.obj.position.y = this.pos.y + this.k * (this.h - 0.1); }
   interact(p) {
     const d = this;
-    if (!G.save.items[this.needs]) { run(function* () { audio.sfx('error'); yield* G.say(null, 'PUERTA_JEFE'); }); return; }
+    if (!G.save.items[this.needs]) { run(function* () { audio.sfx('error'); yield* G.say(null, d.lockText || 'PUERTA_JEFE'); }); return; }
     run(function* () { G.lock++; audio.sfx('keyGet'); fx.sparks(d.pos.x, d.pos.y + 1, d.pos.z, 8); yield* wait(0.4); d.set(true); if (d.key) flag(d.key, 1); yield* wait(0.9); G.lock--; });
   }
   set(open) { if (open === this.isOpen) return; this.isOpen = open; this.sol.off = open; audio.sfx('door'); fx.shake(0.08, 0.6); }

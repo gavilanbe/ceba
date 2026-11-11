@@ -5,6 +5,7 @@ import { fx, P, rnd } from './fx.js';
 import { audio } from './audio.js';
 import { Ent, Chest } from './ents.js';
 import { UI } from './ui.js';
+import * as S2 from './story2.js';
 import { TXT } from './text.js';
 import * as A from './art/props.js';
 import { TI } from './art/tiles.js';
@@ -22,6 +23,7 @@ export function* villaEnter(L, from, o = {}) {
   if (from === 'cisterna' && flag('jefe') && !flag('fin')) { yield* ending(L); return; }
   if (from === 'cisterna') yield* bucketUp(L);
   G.areaTitle(L.title, L.sub);
+  if (flag('intro')) G.hintOnce('camara', 'H_CAMARA');
 }
 function* wakeUp(L) {
   const p = G.player, c = G.candela;
@@ -42,10 +44,13 @@ function* wakeUp(L) {
   c.goal = null; flag('intro', 1);
   G.cam.yaw = 0.9; cineOff(p, 0.9);
   G.areaTitle(L.title, L.sub); writeSave();
+  yield* wait(4.2); G.hintOnce('camara', 'H_CAMARA');
 }
 export function* consejoTalk(n, p) {
   if (n.cryT > 0) { yield* G.say(null, 'CONSEJO_AY'); return; }
-  if (flag('fin')) yield* G.say(null, 'CONSEJO_5');
+  if (flag('fin2')) yield* G.say(null, 'CONSEJO_8');
+  else if (flag('fin') && !flag('ajo')) yield* S2.consejoAjo(n, p);
+  else if (flag('fin')) yield* G.say(null, 'CONSEJO_5');
   else if (flag('hoja')) { yield* G.say(null, 'CONSEJO_3'); G.hintOnce('cubo', 'H_CUBO'); }
   else if (flag('consejo')) yield* G.say(null, 'CONSEJO_2');
   else {
@@ -64,13 +69,14 @@ export function* puerroTalk(n, p) {
 export function* chalotaTalk(n, p) {
   if (n.cryT > 0) { yield* G.say(null, 'CHALOTA_AY'); return; }
   yield* G.say(null, 'CHALOTA_1');
+  if (flag('ajo')) {
+    const i = yield* G.choose('CHALOTA_Q2', ['RIEGO · 10', '5 AJOS · 12', 'NADA']);
+    if (i === 2) { yield* G.say(null, 'CHALOTA_NO'); return; }
+    yield* S2.buy(i === 0 ? 'riego' : 'ajos', p, 'CHALOTA'); return;
+  }
   const i = yield* G.choose('CHALOTA_Q', ['SÍ', 'NO']);
   if (i === 1) { yield* G.say(null, 'CHALOTA_NO'); return; }
-  if (p.layers >= p.maxLayers && !p.crack) { yield* G.say(null, 'CHALOTA_LLENA'); return; }
-  if (G.save.tears < 10) { yield* G.say(null, 'CHALOTA_POBRE'); return; }
-  G.save.tears -= 10; yield* G.say(null, 'CHALOTA_SI');
-  audio.sfx('splash'); fx.burst(P.drop, p.pos.x, p.pos.y + 1.6, p.pos.z, 22, { speed: 1.4, up: 1, g: 10, life: 0.8, size: 0.3, floor: p.pos.y });
-  while (p.layers < p.maxLayers || p.crack) { p.heal(1); yield* wait(0.3); }
+  yield* S2.buy('riego', p, 'CHALOTA');
 }
 export function* pipoTalk(n, p) { yield* G.say(null, flag('lloro_pipo') ? 'PIPO_2' : 'PIPO_1'); }
 export function* nitaTalk(n, p) { n.k = (n.k || 0) + 1; yield* G.say(null, flag('bichoRodado') ? (n.k % 2 ? 'NITA_2' : 'NITA_3') : 'NITA_1'); }
@@ -220,7 +226,7 @@ export function bossStart(p) {
 }
 // atrezo del desagüe ya vencido
 export function afterBossProps(L, fresh = false) {
-  L.block(-0.9, 0, -66.9, 0.9, 0.08, -65.1, { top: TI.moho, noCol: true });
+  S2.sello(L);
   const ch = L.add(new Chest(0, 0, -56.5, 0, 'capa', { big: true, key: 'cofreCapa', hidden: fresh })); L.capaChest = ch;
   const beam = A.makeBeam(12, 1.0); beam.position.set(0, 0, -69.5); beam.material.uniforms.uHide.value = 0.5; L.group.add(beam); L.light(0, 2, -69.5, 6);
   L.add(new Salida(0, 0, -69.5)); if (fresh) L.finishExtra && L.finishExtra();
@@ -262,7 +268,7 @@ export function* bossEnd(L, b) {
 }
 // lo mismo que afterBossProps pero con el nivel ya montado (malla aparte para el sello)
 function afterBossPropsLive(L) {
-  const seal = A.tileBox(1.8, 0.08, 1.8, { all: TI.moho }).mesh(A.tileModelMat()); seal.position.set(0, 0, -66); L.group.add(seal);
+  S2.sello(L);
   const ch = L.add(new Chest(0, 0, -56.5, 0, 'capa', { big: true, key: 'cofreCapa', hidden: true })); L.capaChest = ch;
   const beam = A.makeBeam(12, 1.0); beam.position.set(0, 0, -69.5); beam.material.uniforms.uHide.value = 0.5; L.group.add(beam); L.light(0, 2, -69.5, 6);
   L.add(new Salida(0, 0, -69.5));

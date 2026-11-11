@@ -1,6 +1,6 @@
 // ui.js — HUD, diálogos, avisos, rótulos de zona, transiciones y la ventana de objeto nuevo.
 import { THREE, W, H, makeSky, U, MB, mat } from './gfx.js';
-import { Tex, T, BAYER, clamp, lerp, ease, textW, glyph2, LINE } from './px.js';
+import { Tex, T, BAYER, clamp, lerp, ease, textW, textW3, glyph2, LINE } from './px.js';
 import { G, flag, wait } from './state.js';
 import { input, KEYNAME } from './input.js';
 import { audio } from './audio.js';
@@ -19,6 +19,11 @@ export const ICON = {
   lagrima: ['...c...', '...c...', '..ccc..', '..c7c..', '.c7ccc.', '.ccccc.', '.ccc1c.', '..ccc..'],
   lagrimon: ['...e...', '...e...', '..eee..', '..e7e..', '.e7eee.', '.eeeee.', '.eee2e.', '..eee..'],
   candela: ['.6...6.', '.66.66.', '..111..', '.11111.', '..aaa..', '.aa7aa.', '..aaa..'],
+  llaveRaiz: ['..bbbb.....', '.b3..3b....', '.b....b....', '.b3..3b....', '..bbbb.....', '....44.....', '.....44....', '......444..', '.......443.', '......4.4..', '...........'],
+  capa1: ['.....b.....', '....bb3....', '...99994...', '..9a999944.', '.9a99999944', '.9a99999944', '.9999999944', '.9999999444', '..99999444.', '...994444..', '....6.6....'],
+  ajo: ['.....f.....', '....ff.....', '....f4.....', '...7777....', '..777776...', '.77767766..', '.77677676..', '.77677676d.', '..7767666d.', '...6666dd..', '....4.4....'],
+  cerbatana: ['.........b3', '........b3.', '.......b3..', '......b3...', '.....b3....', '....b3.....', '...ab3.....', '..4a3......', '.b3........', 'b3.........', '3..........'],
+  pepita: ['...aaa...', '..a77aa..', '.a7aaaa9.', '.aaaaaa9.', '.aaaaa99.', '..aaa99..', '...999...'],
   rodar: ['..999..', '.9ff99.', '9f99994', '9999994', '9999944', '.99944.', '..444..'],
 };
 
@@ -70,6 +75,27 @@ export function onionGauge(t, cx, cy, n, max, o = {}) {
   return R;
 }
 
+// fila de capas: una cebollita por capa. Entera, agrietada (aguanta un golpe más) o perdida
+const DARKMAP = { 9: 0, 10: 0, 4: 0, 11: 0, 3: 0, 6: 0 }, GONE = { 9: 1, 10: 1, 4: 1, 11: 5, 3: 5, 6: 5 }, DULL = { 9: 4, 10: 9, 4: 2 }, HOT = { 9: 8, 10: 14, 4: 2 }, WHITE = { 9: 7, 10: 7, 4: 6, 11: 7, 3: 7 };
+export function layerRow(t, x, y, n, max, crack, o = {}) {
+  const sp = o.sp || 13, I = ICON.capa1;
+  for (let i = 0; i < max; i++) {
+    const X = x + i * sp, last = i === n - 1; let Y = y;
+    if (o.bump && last) Y -= Math.round(o.bump * 5);
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [0, 2]]) t.spr(I, X + dx, Y + dy, { map: DARKMAP });
+    if (i >= n) { t.spr(I, X, Y, { map: GONE }); continue; }
+    const warn = n === 1 && max > 1 && Math.floor(G.t * 4) % 2 === 0;
+    t.spr(I, X, Y, { map: o.white && last ? WHITE : warn ? HOT : null });
+    if (last && crack) {
+      // la mitad derecha, apagada, y la grieta por el medio
+      const k = t.clip; t.setClip(X + 6, Y, 6, 12); t.spr(I, X, Y, { map: DULL }); t.clip = k;
+      for (const [cx, cy] of [[5, 2], [6, 3], [5, 4], [4, 5], [5, 6], [6, 7], [5, 8], [5, 9]]) t.px(X + cx, Y + cy, 0);
+      if (o.shake) t.px(X + 6, Y + 5, 7);
+    }
+  }
+  return max * sp;
+}
+
 // ───────── texto con marcas: *destacado* _término_ ^verde^ ~onda~ ─────────
 function parse(s) { const out = []; let c = null, wave = false; for (const ch of s) { if (ch === '*') { c = c === 'a' ? null : 'a'; continue; } if (ch === '_') { c = c === 'b' ? null : 'b'; continue; } if (ch === '^') { c = c === 'c' ? null : 'c'; continue; } if (ch === '~') { wave = !wave; continue; } out.push({ ch, c, wave }); } return out; }
 const plain = s => s.replace(/[*_~^]/g, '');
@@ -93,11 +119,12 @@ const S = {
 };
 export const UI = {
   S,
-  onCrack() { S.crackT = 0.6; S.hurtT = 0.35; },
-  onLayer(from, to) { S.layerFx.push({ t: 0, i: from }); },
+  onCrack() { S.crackT = 0.6; S.hurtT = 0.35; S.pop = { text: 'Capa agrietada', t: 0, c: 9 }; G.hintOnce('grieta', 'H_GRIETA'); },
+  onLayer(from, to, voluntary) { S.layerFx.push({ t: 0, i: from }); if (to > 0) { S.pop = { text: '-1 capa', t: 0, c: 8 }; S.sizeT = 3.2; if (!voluntary) G.hintOnce('capa', 'H_CAPA'); } },
   onHurt() { S.hurtT = 0.5; },
-  onHeal() { S.healT = 0.5; },
+  onHeal(up) { S.healT = 0.5; if (up) { S.pop = { text: '+1 capa', t: 0, c: 3 }; S.sizeT = 2.4; } },
   onTears() { S.tearBump = 0.25; },
+  onAmmo() { S.ammoBump = 0.25; },
   view: null,
 };
 G.ui = UI;
@@ -261,24 +288,38 @@ export function drawUI(dt) {
     }
   }
 
+  // rótulo sobre Ceba: qué le acaba de pasar a sus capas
+  if (S.pop) {
+    const o = S.pop; o.t += dt; if (o.t > 1.3 || !play) S.pop = null; else if (G.cam) {
+      G.cam.project(p.pos.x, p.pos.y + p.h + 0.55, p.pos.z, pr);
+      const k = ease.back(clamp(o.t / 0.18)), y = Math.round(pr.y - o.t * 14 - k * 4);
+      if (pr.z < 1 && (o.t < 1 || Math.floor(o.t * 16) % 2)) tag(t, clamp(Math.round(pr.x), 40, W - 40), clamp(y, 34, H - 30), o.text, o.c, 7, 0);
+    }
+  }
   // barras de cine
   const bh = Math.round(S.bars * 14);
   if (bh > 0) { t.rect(0, 0, W, bh, 0); t.rect(0, H - bh, W, bh, 0); }
 
   if (S.hud > 0.02 && sv) {
-    // ── capas: la cebolla en corte ──
-    const gx = 20, gy = 20 + hy;
-    const R = onionGauge(t, gx, gy, p.layers, p.maxLayers, { crack: p.crack, flash: S.healT > 0 || (p.layers === 1 && Math.floor(G.t * 3) % 2 === 0 && p.maxLayers > 1) });
+    // ── capas: una cebollita por capa, y debajo las lágrimas ──
+    const gx = 7, gy = 6 + hy;
     S.crackT = Math.max(0, S.crackT - dt); S.healT = Math.max(0, S.healT - dt);
-    if (S.healT > 0) t.ring(gx, gy, R + 2 + (0.5 - S.healT) * 12, 11, 1);
-    for (const f of S.layerFx) { f.t += dt; const k = f.t / 0.7, sk = SKINS[Math.min(3, f.i)]; const x = gx + k * 26, y = gy - Math.sin(k * 3.14) * 16 + k * k * 26; t.arc(x, y, 6, 9, k * 9, k * 9 + 3.6, sk.base); t.arc(x, y, 9, 9, k * 9, k * 9 + 3.6, sk.vein); }
+    const rw = p.maxLayers * 13 + 3;
+    t.rrect(gx - 4, gy - 3, rw + 5, 18, 0, 3); t.rrect(gx - 3, gy - 2, rw + 3, 16, 1, 2); t.rect(gx - 1, gy - 1, rw - 1, 1, 13);
+    layerRow(t, gx, gy, p.layers, p.maxLayers, p.crack, { bump: S.healT * 2, white: S.healT > 0.25 || S.crackT > 0.45, shake: S.crackT > 0 });
+    for (const f of S.layerFx) { f.t += dt; const k = f.t / 0.7, x = gx + (f.i - 1) * 13 + k * 22, y = gy + 2 - Math.sin(k * 3.14) * 14 + k * k * 30; t.spr(ICON.capa1, Math.round(x), Math.round(y), { map: Math.floor(f.t * 20) % 2 ? WHITE : DULL }); }
     S.layerFx = S.layerFx.filter(f => f.t < 0.7);
-    // ── lágrimas: pastilla aparte, sin pisar la cebolla ──
+    // ── lágrimas ──
     if (S.tearShown !== sv.tears) { const d = sv.tears - S.tearShown; S.tearShown += Math.sign(d) * Math.max(1, Math.floor(Math.abs(d) * 0.2)); }
     S.tearBump = Math.max(0, S.tearBump - dt);
-    const num = String(S.tearShown).padStart(3, '0'), tx = gx + R + 7, ty = gy - 6 - Math.round(S.tearBump * 10), tw = textW(num) + 17;
+    const num = String(S.tearShown).padStart(3, '0'), tx = gx - 3, ty = gy + 19 - Math.round(S.tearBump * 10), tw = textW(num) + 17;
     t.rrect(tx - 1, ty - 1, tw + 2, 13, 0, 2); t.rrect(tx, ty, tw, 11, 1, 2); t.rect(tx + 2, ty + 1, tw - 4, 1, 13);
     t.spr(ICON.lagrima, tx + 2, ty + 1); t.text(num, tx + 12, ty + 3, S.tearBump > 0 ? 10 : 7);
+    // pepitas de oro, cuando ya se ha encontrado alguna
+    let ex = tx + tw + 4;
+    if (sv.pepitas > 0 || flag('pepita')) { const s2 = String(sv.pepitas || 0), w2 = textW(s2) + 16; t.rrect(ex - 1, ty - 1, w2 + 2, 13, 0, 2); t.rrect(ex, ty, w2, 11, 1, 2); t.rect(ex + 2, ty + 1, w2 - 4, 1, 13); t.spr(ICON.pepita, ex + 2, ty + 2); t.text(s2, ex + 13, ty + 3, 10); ex += w2 + 4; }
+    // tamaño: qué puede hacer Ceba con las capas que lleva
+    if (S.sizeT > 0) { S.sizeT -= dt; const lb = p.layers <= 1 ? 'Pequeña: cabes por las ratoneras' : p.layers >= 3 ? 'Entera: mueves bloques' : 'Mediana'; const k = clamp(S.sizeT / 0.25) * clamp((3.2 - S.sizeT) / 0.15 + 0.2); if (k > 0.3) { const w3 = textW(lb) + 10; t.rrect(tx - 1, ty + 14, w3 + 2, 12, 0, 2); t.rrect(tx, ty + 15, w3, 10, p.layers <= 1 ? 2 : 4, 1); t.text(lb, tx + 5, ty + 17, 7); } }
     // ── botones: B, A y los tres C, cada uno con su tecla debajo ──
     const pressed = b => input.down[b] && G.lock <= 0;
     const bx = 226, by = 18 + hy;
@@ -295,10 +336,11 @@ export function drawUI(dt) {
     for (let i = 0; i < 3; i++) {
       const id = sv.c[i], pd = pressed('c' + (i + 1));
       button(t, CX[i], CY[i], 7, 10, 9, null, null, pd);
-      if (id && ICON[id]) t.spr(ICON[id], CX[i] - 5, CY[i] - 6 + (pd ? 1 : 0), { map: p.layers <= 1 && id === 'mondador' ? { 8: 5, 14: 5, 6: 5, 2: 5 } : null });
+      if (id && ICON[id]) t.spr(ICON[id], CX[i] - 5, CY[i] - 6 + (pd ? 1 : 0), { map: p.layers <= 1 && id === 'mondador' ? { 8: 5, 14: 5, 6: 5, 2: 5 } : id === 'ajo' && !sv.ajos ? { 7: 5, 6: 5, 15: 5, 13: 5, 4: 5 } : null });
+      if (id === 'ajo') { const n = String(sv.ajos || 0); t.rrect(CX[i] + 2, CY[i] - 12, textW3(n) + 4, 8, 0, 1); t.text3(n, CX[i] + 4, CY[i] - 11, sv.ajos ? 10 : 8); }
       t.text3O(KEYNAME['c' + (i + 1)], CX[i] - 1, CY[i] + 10, 7, 0);
     }
-    if (sv.items.llave && G.level && G.level.name === 'cisterna' && !flag('jefe')) { t.rrect(5, 40 + hy, 15, 15, 0, 2); t.rrect(6, 41 + hy, 13, 13, 1, 2); t.spr(ICON.llave, 7, 42 + hy); }
+    if (sv.items.llave && G.level && G.level.name === 'cisterna' && !flag('jefe')) { t.rrect(W - 21, 40 + hy, 15, 15, 0, 2); t.rrect(W - 20, 41 + hy, 13, 13, 1, 2); t.spr(ICON.llave, W - 19, 42 + hy); }
   }
 
   // ── jefe ──

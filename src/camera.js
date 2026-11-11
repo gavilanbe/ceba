@@ -14,8 +14,9 @@ export class Cam {
     this.yaw = 0; this.pitch = 0.42; this.dist = 7; this.d = 7; this.at = new THREE.Vector3(); this.pos = new THREE.Vector3();
     this.shot = null; this.baseDist = 7; this.basePitch = 0.42; this.snap = 0; this.snapTo = 0; this.fov = 40; this.bars = 0; this.barsT = 0;
     this.blend = 0; this.from = { p: new THREE.Vector3(), l: new THREE.Vector3() }; this.zHeld = 0; this.look = new THREE.Vector3();
+    this.la = new THREE.Vector3(); this.pu = 0; this.manT = 9; this.zoom = 1; this.zi = 0; this.peek = 0; this.baseY = null;
   }
-  reset(yaw) { const p = G.player; if (yaw != null) this.yaw = yaw; this.at.set(p.pos.x, p.pos.y + 0.9, p.pos.z); this.d = this.dist = this.baseDist; this.pitch = this.basePitch; this.shot = null; this.blend = 0; this.place(); }
+  reset(yaw) { const p = G.player; if (yaw != null) this.yaw = yaw; this.at.set(p.pos.x, p.pos.y + 0.9, p.pos.z); this.d = this.dist = this.baseDist; this.pitch = this.basePitch; this.shot = null; this.blend = 0; this.la.set(0, 0, 0); this.pu = 0; this.peek = 0; this.baseY = null; this.manT = 9; this.place(); }
   // plano fijo de cine
   cut(px, py, pz, lx, ly, lz, fov = 40) { this.shot = { p: new THREE.Vector3(px, py, pz), l: new THREE.Vector3(lx, ly, lz), fov }; this.blend = 0; this.cam.position.set(px, py, pz); this.look.set(lx, ly, lz); this.fov = fov; }
   // generador: viaja hasta un plano
@@ -33,7 +34,8 @@ export class Cam {
     for (const e of L.ents) {
       if (e.dead || !e.targetable || e.hiddenT) continue;
       const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
-      if (d > 11 || Math.abs(e.pos.y - p.pos.y) > 4) continue;
+      const far = e.shootable && G.save.items.cerbatana;
+      if (d > (far ? 19 : 11) || Math.abs(e.pos.y - p.pos.y) > (far ? 7 : 4)) continue;
       const dot = (dx * fx_ + dz * fz_) / (d || 1);
       if (dot < -0.2 && d > 2.5) continue;
       const s = d * (1.6 - dot) * (e.enemy ? 0.7 : 1);
@@ -50,40 +52,58 @@ export class Cam {
       if (t) { G.target = t; audio.sfx('target'); if (t.onTarget) t.onTarget(); }
       else { this.snap = 0.22; this.snapTo = p.yaw + Math.PI; audio.sfx('untarget', { vol: 0.5 }); }
     }
-    if (G.target && (!input.down.z || G.target.dead || !want || Math.hypot(G.target.pos.x - p.pos.x, G.target.pos.z - p.pos.z) > 14)) { G.target = null; if (want) audio.sfx('untarget'); }
+    if (G.target && (!input.down.z || G.target.dead || !want || Math.hypot(G.target.pos.x - p.pos.x, G.target.pos.z - p.pos.z) > (G.target.shootable ? 21 : 14))) { G.target = null; if (want) audio.sfx('untarget'); }
     const tg = G.target;
     this.barsT = lerp(this.barsT, (tg || this.shot || G.cine) ? 1 : 0, 1 - Math.exp(-10 * dt));
     if (!this.shot) {
-      const sp = Math.hypot(p.vel.x, p.vel.z);
-      // foco
+      const sp = Math.hypot(p.vel.x, p.vel.z), O = G.opt || {};
+      // foco: un poco por delante de Ceba, y sin botar con cada saltito
       const hy = 0.75 * p.sc + 0.35;
-      _v.set(p.pos.x, p.pos.y + hy, p.pos.z);
+      if (p.onGround || p.swim || p.state === 'climb' || this.baseY == null) this.baseY = p.pos.y;
+      const fy = p.pos.y < this.baseY ? p.pos.y : this.baseY + Math.max(0, p.pos.y - this.baseY - 1.1);
+      const laK = (tg || p.state === 'hurt' || !want) ? 0 : 0.13;
+      this.la.x += (clamp(p.vel.x * laK, -1.1, 1.1) - this.la.x) * (1 - Math.exp(-2.6 * dt)); this.la.z += (clamp(p.vel.z * laK, -1.1, 1.1) - this.la.z) * (1 - Math.exp(-2.6 * dt));
+      _v.set(p.pos.x + this.la.x, fy + hy, p.pos.z + this.la.z);
       let dWant = this.baseDist * (0.72 + 0.28 * p.sc), pitch = this.basePitch;
       if (L.camBase) { dWant = L.camBase.dist; pitch = L.camBase.pitch; }
       if (L.camZone) { const z = L.camZone(p.pos); if (z) { if (z.dist) dWant = z.dist; if (z.pitch) pitch = z.pitch; } }
+      // zoom: R cambia de escalón, la rueda afina
+      if (want) {
+        if (input.pressed.zoom) { input.pressed.zoom = false; const Z = [1, 1.35, 0.72]; this.zi = ((this.zi || 0) + 1) % 3; this.zoom = Z[this.zi]; audio.sfx('menuMove', { pitch: 0.8 + this.zi * 0.2 }); }
+        if (input.wheel) this.zoom = clamp(this.zoom + input.wheel * 0.08, 0.6, 1.5);
+      }
+      dWant *= this.zoom;
+      this.manT += dt;
       if (tg) {
         const dx = tg.pos.x - p.pos.x, dz = tg.pos.z - p.pos.z, d = Math.hypot(dx, dz);
         _v.x += dx * 0.32; _v.z += dz * 0.32; _v.y += ((tg.pos.y + (tg.hh || 0.5)) - (p.pos.y + hy)) * 0.3;
         const ty = Math.atan2(-dx, -dz) + 0.42 * (this.side || 1);
         this.yaw += angDiff(this.yaw, ty) * (1 - Math.exp(-6 * dt));
-        dWant = clamp(4.6 + d * 0.5, 5, 10); pitch = 0.3 + (tg.camPitch || 0);
+        dWant = clamp(4.6 + d * 0.5, 5, 10) * Math.max(0.85, this.zoom); pitch = 0.3 + (tg.camPitch || 0); this.pu *= 1 - Math.min(1, 4 * dt);
       } else if (this.snap > 0) {
-        this.snap -= dt; this.yaw += angDiff(this.yaw, this.snapTo) * (1 - Math.exp(-22 * dt));
+        this.snap -= dt; this.yaw += angDiff(this.yaw, this.snapTo) * (1 - Math.exp(-22 * dt)); this.pu *= 1 - Math.min(1, 10 * dt);
       } else if (want) {
-        // gira sola hacia la espalda al correr de lado; Q/E a mano
-        const man = (input.down.r ? 1 : 0) - (input.down.l ? 1 : 0);
-        if (man) this.yaw -= man * 2.4 * dt;
-        else if (sp > 1 && p.state === 'free') {
-          const d = angDiff(this.yaw, p.yaw + Math.PI);
-          if (Math.abs(d) < 2.5) this.yaw += d * 0.85 * dt * clamp(sp / 4);
+        // a mano: flechas, palanca derecha, Q/E o el ratón; C la pone detrás
+        if (input.pressed.cen) { input.pressed.cen = false; this.snap = 0.25; this.snapTo = p.yaw + Math.PI; audio.sfx('untarget', { vol: 0.5 }); }
+        const sens = O.sens || 1, inv = O.invY ? -1 : 1;
+        const man = (input.down.r ? 1 : 0) - (input.down.l ? 1 : 0) + input.cx;
+        const dyaw = -man * 2.7 * dt - input.mdx * 0.0034 * sens, dpit = (input.cy * 1.5 * dt + input.mdy * 0.0028 * sens) * inv;
+        if (dyaw || dpit) { this.yaw += dyaw; this.pu = clamp(this.pu + dpit, -0.34, 0.72); this.manT = 0; }
+        else if (O.camAuto !== false && this.manT > (input.locked ? 3.5 : 0.9)) {
+          // sola: se va poniendo a la espalda de Ceba cuando corre, y devuelve la inclinación a su sitio
+          if (sp > 1 && p.state === 'free') { const d = angDiff(this.yaw, p.yaw + Math.PI); if (Math.abs(d) < 2.55) this.yaw += d * Math.min(1, 1.7 * dt * clamp(sp / 4)); }
+          if (this.manT > 4) this.pu *= 1 - Math.min(1, 0.9 * dt);
         }
         this.side = angDiff(this.yaw, p.yaw + Math.PI) > 0 ? 1 : -1;
+        // si delante hay un escalón hacia abajo, se asoma un poco para que se vea dónde se cae
+        if (p.onGround && sp > 1.5 && !L.camFree) { const g = L.ground(p.pos.x + p.vel.x / sp * 2.6, p.pos.z + p.vel.z / sp * 2.6, p.pos.y + 0.5, 0.2); this.peek = lerp(this.peek, g.y < p.pos.y - 1.2 ? 0.14 : 0, 1 - Math.exp(-3 * dt)); } else this.peek = lerp(this.peek, 0, 1 - Math.exp(-2 * dt));
       }
-      const kx = 1 - Math.exp(-12 * dt), ky = 1 - Math.exp(-(p.onGround || p.swim ? 7 : 3) * dt);
+      pitch = clamp(pitch + this.pu + this.peek, 0.06, 1.3);
+      const kx = 1 - Math.exp(-12 * dt), ky = 1 - Math.exp(-(p.onGround || p.swim ? 7 : 4) * dt);
       this.at.x += (_v.x - this.at.x) * kx; this.at.z += (_v.z - this.at.z) * kx; this.at.y += (_v.y - this.at.y) * ky;
-      this.pitch += (pitch - this.pitch) * (1 - Math.exp(-4 * dt));
+      this.pitch += (pitch - this.pitch) * (1 - Math.exp(-(this.manT < 0.3 ? 14 : 4) * dt));
       this.dist += (dWant - this.dist) * (1 - Math.exp(-4 * dt));
-      this.fov += (40 - this.fov) * (1 - Math.exp(-6 * dt));
+      this.fov += ((p.state === 'roll' ? 44 : 40) - this.fov) * (1 - Math.exp(-6 * dt));
       this.place(dt);
       if (this.blend > 0) {
         this.blend -= dt; const k = ease.io(clamp(this.blend / this.blendT));
@@ -104,11 +124,14 @@ export class Cam {
       // si algo tapa, primero sube la cámara; solo si no basta, se acerca
       let best = 0, bf = -1;
       for (const o of [0, 0.22, 0.44, 0.66]) { const [x, y, z] = dir(Math.min(1.35, this.pitch + o)); const f = L.ray(this.at.x, this.at.y, this.at.z, this.at.x + x * d, this.at.y + y * d, this.at.z + z * d); if (f > bf + 0.02) { bf = f; best = o; } if (f >= 1) break; }
-      po = best; d = bf >= 1 ? this.dist : Math.max(1.6, d * bf - 0.25);
+      po = best;
+      // bigotes a los lados: que una esquina no se coma media pantalla
+      if (bf >= 1) { const [x, y, z] = dir(Math.min(1.35, this.pitch + po)), rx = Math.cos(this.yaw) * 0.32, rz = -Math.sin(this.yaw) * 0.32; for (const s of [-1, 1]) bf = Math.min(bf, L.ray(this.at.x, this.at.y, this.at.z, this.at.x + x * d + rx * s, this.at.y + y * d, this.at.z + z * d + rz * s)); }
+      d = bf >= 1 ? this.dist : Math.max(1.6, d * bf - 0.25);
     }
     this.po = dt > 0 ? lerp(this.po || 0, po, 1 - Math.exp(-6 * dt)) : po;
     const [ox, oy, oz] = dir(Math.min(1.35, this.pitch + this.po));
-    this.d = dt > 0 ? (d < this.d ? lerp(this.d, d, 1 - Math.exp(-30 * dt)) : lerp(this.d, d, 1 - Math.exp(-5 * dt))) : d;
+    this.d = dt > 0 ? (d < this.d ? lerp(this.d, d, 1 - Math.exp(-30 * dt)) : lerp(this.d, d, 1 - Math.exp(-3.5 * dt))) : d;
     this.cam.position.set(this.at.x + ox * this.d, this.at.y + oy * this.d, this.at.z + oz * this.d);
     this.look.copy(this.at);
   }

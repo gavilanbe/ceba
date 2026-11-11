@@ -10,10 +10,12 @@
 
 En Bulbo no llueve: toda el agua que hay la ha llorado alguien. Por eso las cebollas hacen llorar al mundo. Ceba nació dulce y a su lado no llora nadie… hasta que pierde una capa.
 
-- **Capas**: son la vida y el tamaño. Entera mueves bloques; con una sola cabes por las ratoneras.
+- **Capas**: son la vida y el tamaño: una cebollita por capa en el marcador, y cada una aguanta dos golpes. Entera mueves bloques; con una sola cabes por las ratoneras.
 - **Pelarse**: sueltas una nube que hace llorar a plagas, vecinos y estatuas, y dejas una muda que pesa en las placas.
 - **Bancales**: plántate para recuperar capas y guardar.
 - **Capítulo I**: Villa Ristra, la Hoja del Bancal Viejo, la Cisterna y Tapona, la babosa que lleva el tapón del desagüe de sombrero.
+- **Capítulo II**: el Ajo Bravo revienta el sello de moho y se baja a la Pulpa: el Raigal de las lombrices, las setas trampolín, la Raicera, la Cerbatana, Cavador el alacrán cebollero… y Don Mildiu.
+- **Pepitas de oro**: ocho escondidas por el mundo; la Yaya Morada cambia cuatro por un anillo de capa.
 
 ## Controles
 
@@ -24,7 +26,10 @@ En Bulbo no llueve: toda el agua que hay la ha llorado alguien. Por eso las cebo
 | J | la Hoja |
 | Mayús | fijar objetivo |
 | U, I, O | objetos |
-| Q, E | girar cámara / pasar página |
+| Flechas, ratón (clic) o Q/E | mover la cámara |
+| R / rueda | zoom |
+| C | cámara a la espalda |
+| Q, E | pasar página en la pausa |
 | Intro | pausa |
 
 ## Cómo está hecho

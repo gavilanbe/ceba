@@ -115,7 +115,7 @@ export const Title = {
       });
       if (k > 0.9) {
         if (Math.floor(S.t * 1.6) % 2) t.textS('Pulsa Espacio', lx + 14, 106 + S.opts.length * 16 + 2, 7, 0);
-        const c1 = 'WASD mover · Espacio acción · J la Hoja', c2 = 'Mayús fijar · U I O objetos · Intro pausa';
+        const c1 = 'WASD mover · Flechas o ratón: cámara · Espacio acción', c2 = 'J la Hoja · Mayús fijar · U I O objetos · R zoom · Intro pausa';
         t.rect(0, H - 25, W, 25, 0); t.rect(0, H - 25, W, 1, 2); t.textC(c1, W / 2, H - 21, 13); t.textC(c2, W / 2, H - 11, 13);
       }
     }

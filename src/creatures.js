@@ -5,6 +5,7 @@ import { fx, P, rnd } from './fx.js';
 import { audio } from './audio.js';
 import { Ent, Slime } from './ents.js';
 import * as F from './art/folk.js';
+import * as Q from './art/pulpa.js';
 import { clamp, lerp, ease } from './px.js';
 import { angDiff } from './player.js';
 
@@ -17,12 +18,20 @@ const KIND = {
   chalota: { make: F.makeChalota, voice: 1.25, name: 'CHALOTA' },
   pipo: { make: () => F.makeCebolleta(), voice: 1.7, name: 'PIPO' },
   nita: { make: () => F.makeCebolleta(14), voice: 1.95, name: 'NITA' },
+  yaya: { make: () => { const m = F.makeChalota(); m.mats[0].uniforms.uSwapA.value = 14; m.mats[0].uniforms.uSwapB.value = 13; m.g.scale.setScalar(1.25); m.h *= 1.25; m.r *= 1.25; return m; }, voice: 0.85, name: 'YAYA MORADA' },
+  anelida: { make: () => Q.makeLombriz({ hat: true, len: 1.9 }), voice: 0.95, name: 'DOÑA ANÉLIDA', sway: 1 },
+  limo: { make: () => Q.makeLombriz({ scarf: true, len: 1.6, swap: [14, 15] }), voice: 0.6, name: 'TÍO LIMO', sway: 1 },
+  tubo: { make: () => Q.makeLombriz({ s: 0.62, len: 1.3 }), voice: 1.9, name: 'TUBO', sway: 1 },
+  fideo: { make: () => Q.makeLombriz({ s: 0.55, len: 1.5, swap: [14, 9], scarf: true }), voice: 2.1, name: 'FIDEO', sway: 1 },
+  lombriz: { make: () => Q.makeLombriz({ len: 1.5, swap: [14, 8] }), voice: 1.2, name: 'LOMBRIZ', sway: 1 },
+  caracol: { make: Q.makeCaracol, voice: 0.5, name: 'DON PASO', noTurn: 1 },
+  mildiu: { make: Q.makeMildiu, voice: 0.36, name: 'DON MILDIU' },
 };
 export class NPC extends Ent {
   constructor(x, y, z, yaw, kind, talk, o = {}) {
     super(x, y, z); const K = KIND[kind]; this.kind = kind; this.m = K.make(); this.obj = this.m.g; this.yaw = this.yaw0 = yaw; this.voice = K.voice; this.name = K.name;
     this.talk = talk; this.label = 'HABLAR'; this.ir = (this.m.r || 0.5) + 1.15; this.r = this.m.r || 0.5; this.hh = this.m.h * 0.8; this.targetable = true;
-    this.cryT = 0; this.cryCd = 0; this.sqV = 0; this.sqY = 1; this.turns = o.turns !== false; this.hopT = 0; this.o = o; this.sync();
+    this.cryT = 0; this.cryCd = 0; this.sqV = 0; this.sqY = 1; this.turns = o.turns !== false && !K.noTurn; this.sway = K.sway; this.obj.rotation.y = yaw; this.hopT = 0; this.o = o; this.sync();
   }
   onAdd(L) { const w = this.r * 1.5; L.addSolid({ x0: this.pos.x - w / 2, x1: this.pos.x + w / 2, z0: this.pos.z - w / 2, z1: this.pos.z + w / 2, y0: this.pos.y, y1: this.pos.y + this.m.h, ent: this, noClimb: true, noCam: true }); }
   interact(p) { const n = this; if (!this.talk) return; run(function* () { G.lock++; G.speaker = n; n.sqV = 5; yield* n.talk(n, p); G.speaker = null; G.lock--; }); }
@@ -45,6 +54,8 @@ export class NPC extends Ent {
     const sx = 1 / Math.sqrt(sy); this.m.sq.scale.set(sx, sy, sx);
     if (this.m.arm) this.m.arm.rotation.z = Math.sin(this.t * 1.5) * 0.02;
     if (this.m.hair) this.m.hair.rotation.x = Math.sin(this.t * 3) * 0.12;
+    if (this.sway) { this.m.sq.rotation.z = Math.sin(this.t * 1.7) * 0.07; this.m.sq.rotation.x = Math.sin(this.t * 1.3 + 1) * 0.05; }
+    if (this.m.stalks && this.m.neck) { this.m.neck.rotation.x = 0.15 + Math.sin(this.t * 1.1) * 0.06; this.m.stalks.forEach((st, i) => { st.rotation.z = Math.sin(this.t * 2 + i * 2) * 0.15; }); }
     if (this.o.hop) { this.hopT -= dt; if (this.hopT <= 0) { this.hopT = 0.6 + rnd() * 1.6; this.sqV = 6; } }
   }
 }
@@ -113,7 +124,7 @@ export class Bicho extends Ent {
 export class Enemy extends Ent {
   setup(m, hp, o = {}) {
     this.m = m; this.obj = m.g; this.hp = hp; this.enemy = true; this.targetable = true; this.vel = new THREE.Vector3(); this.cryT = 0; this.hurtT = 0; this.fl = 0; this.home = this.pos.clone();
-    this.yaw = rnd() * 6; this.sqV = 0; this.sqY = 1; this.onGround = false; this.dmg = 1; this.loot = o.loot || { tears: 1, ring: 0.15 }; this.aggro = o.aggro || 8; this.kind = o.kind; this.cryPitch = o.cry || 1.5; this.sync();
+    this.yaw = rnd() * 6; this.sqV = 0; this.sqY = 1; this.onGround = false; this.dmg = 1; this.loot = o.loot || { tears: 1, ring: 0.15, ajo: 0.15 }; this.aggro = o.aggro || 8; this.kind = o.kind; this.cryPitch = o.cry || 1.5; this.sync();
   }
   hit(o) {
     if (this.hurtT > 0) return false;
@@ -251,5 +262,88 @@ export class Trips extends Enemy {
     this.touch(); this.common(dt);
     this.obj.rotation.x = this.st === 'dart' ? -Math.asin(clamp(this.dir.y, -1, 1)) : 0;
     const g = this.level.ground(this.pos.x, this.pos.z, this.pos.y + 0.2, 0.1); this.m.sh.position.y = g.y - this.pos.y + 0.03; this.m.sh.visible = g.y > -50;
+  }
+}
+
+// ───────── plagas de la Pulpa ─────────
+// mohín: pelusa de moho. Un tajo en seco lo parte en dos; hay que hacerlo llorar antes, o reventarlo con ajo
+export class Mohin extends Enemy {
+  constructor(x, y, z, o = {}) {
+    super(x, y, z); this.small = !!o.small; const s = this.small ? 0.6 : 1;
+    this.setup(Q.makeMohin(s), this.small ? 1 : 2, { kind: 'mohin', cry: this.small ? 1.4 : 0.9, loot: { tears: this.small ? 1 : 2, ring: this.small ? 0.1 : 0.3, ajo: 0.25 }, ...o });
+    this.r = 0.44 * s; this.hh = 0.36 * s; this.hop = rnd() * 1.5; this.light = this.small; this.sc = s; this.puff = rnd() * 2;
+  }
+  hit(o) {
+    if (this.hurtT > 0) return false;
+    if (!o.blast && this.cryT <= 0 && !this.small) {
+      // se parte: dos mohínes pequeños salen a los lados
+      const L = this.level, px = -o.dz, pz = o.dx;
+      audio.sfx('spore'); audio.sfx('hit', { pitch: 0.7 }); fx.burst(P.sqG, this.pos.x, this.pos.y + 0.4, this.pos.z, 14, { speed: 3, up: 3, g: 4, life: 0.8, size: 0.22 }); fx.burst(P.dustD, this.pos.x, this.pos.y + 0.3, this.pos.z, 6, { speed: 2, up: 1, g: -1, life: 0.6, size: 0.6 });
+      for (const sgn of [-1, 1]) { const q = L.add(new Mohin(this.pos.x + px * 0.4 * sgn, this.pos.y + 0.2, this.pos.z + pz * 0.4 * sgn, { small: true, aggro: this.aggro })); q.home.copy(this.home); q.room = this.room; q.vel.set(px * 4.5 * sgn + o.dx * 2, 5, pz * 4.5 * sgn + o.dz * 2); q.hurtT = 0.35; q.hop = 0.7; }
+      G.hintOnce('mohin', 'H_MOHIN'); seen('mohin'); this.kill(); return true;
+    }
+    return super.hit(o);
+  }
+  update(dt) {
+    if (G.lock > 0 && !G.boss) { this.common(dt); return; }
+    const q = this.toPlayer();
+    if (this.cryT <= 0 && this.onGround) {
+      this.vel.x *= 0.8; this.vel.z *= 0.8; this.hop -= dt;
+      if (this.hop <= 0) {
+        const chase = q.d < this.aggro && Math.abs(q.dy) < 3;
+        const a = chase ? Math.atan2(q.dx, q.dz) + (rnd() - 0.5) * 0.5 : Math.atan2(this.home.x - this.pos.x, this.home.z - this.pos.z) + (rnd() - 0.5) * 4;
+        this.yaw = a; const s = (chase ? 2.6 : 1.2) * (this.small ? 1.35 : 1);
+        this.vel.x = Math.sin(a) * s; this.vel.z = Math.cos(a) * s; this.vel.y = this.small ? 4.6 : 6.2; this.onGround = false; this.sqV = 7;
+        this.hop = (chase ? 0.75 : 1.6) + rnd() * 0.5;
+      }
+    }
+    this.vel.y += 9 * dt; // cae despacio, como pelusa
+    this.physics(dt); if (this.landed) { this.landed = false; fx.burst(P.sqG, this.pos.x, this.pos.y + 0.1, this.pos.z, 3, { speed: 1, up: 0.8, g: 0.5, life: 0.5, size: 0.14 }); }
+    this.touch(); this.common(dt);
+    this.puff -= dt; if (this.puff <= 0 && this.near(14)) { this.puff = 1.2 + rnd(); fx.one(P.sqG, this.pos.x + (rnd() - 0.5) * 0.5, this.pos.y + 0.7 * this.sc, this.pos.z + (rnd() - 0.5) * 0.5, { vy: 0.6, g: -0.2, life: 1, size: 0.12, wob: 0.6 }); }
+    if (this.m.puffs) this.m.puffs.rotation.y += dt * (this.cryT > 0 ? 6 : 1.2);
+  }
+}
+
+// gorgojo: coraza dura. Embiste en línea recta; si se estampa contra un muro, se queda patas arriba
+export class Gorgojo extends Enemy {
+  constructor(x, y, z, o = {}) {
+    super(x, y, z); this.setup(Q.makeGorgojo(), 2, { kind: 'gorgojo', cry: 0.7, loot: { tears: 3, ring: 0.4, ajo: 0.4 }, ...o });
+    this.r = 0.6; this.hh = 0.38; this.st = 'walk'; this.stT = 1 + rnd() * 2; this.flipK = 0; this.cy = 0; this.heavy = false; this.aggro = o.aggro || 9;
+  }
+  get soft() { return this.st === 'flip' || this.cryT > 0; }
+  hit(o) {
+    if (o.blast) { this.st = 'flip'; this.stT = 3; return super.hit(o); }
+    if (!this.soft) { this.sqV = -4; audio.sfx('shell', { pitch: 0.9 + rnd() * 0.2 }); fx.sparks(this.pos.x, this.pos.y + 0.5, this.pos.z, 3); G.hintOnce('gorgojo', 'H_GORGOJO'); seen('gorgojo'); if (!o.seed && this.st === 'walk') { this.st = 'aim'; this.stT = 0.4; } return 'bounce'; }
+    return super.hit(o);
+  }
+  onCry() { this.st = 'flip'; this.stT = Math.max(this.stT, 3.6); }
+  touch() { if (this.soft || this.hurtT > 0) return; const p = G.player, d = Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z); if (d < this.r + p.r * 0.9 && p.pos.y < this.pos.y + 0.9 && p.pos.y + p.h > this.pos.y) p.hurt(1, this.pos.x, this.pos.z, { heavy: this.st === 'charge', knock: this.st === 'charge' ? 9 : 6 }); }
+  update(dt) {
+    if (G.lock > 0) { this.common(dt); return; }
+    const q = this.toPlayer(); this.stT -= dt;
+    const see = q.d < this.aggro && Math.abs(q.dy) < 2;
+    if (this.st === 'flip') { this.vel.x *= 0.85; this.vel.z *= 0.85; if (this.stT <= 0 && this.cryT <= 0) { this.st = 'walk'; this.stT = 1.2; this.vel.y = 5; this.onGround = false; audio.sfx('jump', { pitch: 0.7, vol: 0.5 }); } }
+    else if (this.st === 'walk') {
+      if (this.onGround) { const ty = see ? Math.atan2(q.dx, q.dz) : Math.atan2(this.home.x - this.pos.x, this.home.z - this.pos.z) + Math.sin(this.t * 0.7) * 1.6; this.yaw += angDiff(this.yaw, ty) * Math.min(1, 3 * dt); const s = see ? 0.5 : (Math.hypot(this.home.x - this.pos.x, this.home.z - this.pos.z) > 1.5 ? 1.1 : 0.4); this.vel.x = Math.sin(this.yaw) * s; this.vel.z = Math.cos(this.yaw) * s; }
+      if (see && this.stT <= 0 && Math.abs(angDiff(this.yaw, Math.atan2(q.dx, q.dz))) < 0.5) { this.st = 'aim'; this.stT = 0.6; audio.sfx('buzz', { pitch: 0.6 }); }
+    } else if (this.st === 'aim') {
+      this.vel.x *= 0.7; this.vel.z *= 0.7; this.yaw += angDiff(this.yaw, Math.atan2(q.dx, q.dz)) * Math.min(1, 9 * dt); this.fl = 0.3 + Math.sin(this.t * 40) * 0.2;
+      if (rnd() < 0.5) fx.dust(this.pos.x - Math.sin(this.yaw) * 0.6, this.pos.y, this.pos.z - Math.cos(this.yaw) * 0.6, 1, { dark: true, size: 0.3 });
+      if (this.stT <= 0) { this.st = 'charge'; this.stT = 1.5; this.cy = this.yaw; audio.sfx('swing3', { pitch: 0.7 }); }
+    } else if (this.st === 'charge') {
+      this.vel.x = Math.sin(this.cy) * 9.5; this.vel.z = Math.cos(this.cy) * 9.5; this.yaw = this.cy;
+      if (rnd() < 0.7) fx.dust(this.pos.x - Math.sin(this.cy) * 0.7, this.pos.y, this.pos.z - Math.cos(this.cy) * 0.7, 1, { dark: true, size: 0.36 });
+    }
+    this.physics(dt);
+    if (this.st === 'charge') {
+      const wall = (this.hits || []).some(h => (Math.sin(this.cy) * -h.nx + Math.cos(this.cy) * -h.nz) > 0.6 && !(h.s.ent === this));
+      if (wall) { this.st = 'flip'; this.stT = 3.2; this.vel.set(-Math.sin(this.cy) * 3, 5, -Math.cos(this.cy) * 3); this.onGround = false; audio.sfx('shell', { pitch: 0.6 }); audio.sfx('land', { pitch: 0.7 }); fx.shake(0.14, 0.2); fx.burst(P.star, this.pos.x, this.pos.y + 0.8, this.pos.z, 6, { speed: 2.4, up: 3, g: 6, life: 0.55, size: 0.4 }); for (const h of this.hits) if (h.s.ent && h.s.ent.fragile) h.s.ent.smash(); }
+      else if (this.stT <= 0) { this.st = 'walk'; this.stT = 1.4; }
+    }
+    this.touch(); this.common(dt);
+    this.flipK = lerp(this.flipK, this.soft ? 1 : 0, 1 - Math.exp(-14 * dt)); this.m.flip.rotation.z = this.flipK * Math.PI; this.m.flip.position.y = this.flipK * 0.78;
+    const sp = Math.hypot(this.vel.x, this.vel.z), w = this.soft ? 18 : 6 + sp * 3; this.m.legs.forEach((l, i) => { l.rotation.x = Math.sin(this.t * w + i * 2.1) * (this.soft ? 0.7 : 0.35); });
+    if (this.soft && rnd() < 0.12) fx.one(P.star, this.pos.x + (rnd() - 0.5) * 0.8, this.pos.y + 1 + rnd() * 0.3, this.pos.z + (rnd() - 0.5) * 0.8, { vy: 0.4, life: 0.4, size: 0.3 });
   }
 }

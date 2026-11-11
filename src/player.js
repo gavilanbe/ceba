@@ -1,6 +1,7 @@
 // player.js — Ceba: correr, rodar, la Hoja, trepar, flotar, pelarse y plantarse.
 import { THREE } from './gfx.js';
 import { makeCeba } from './art/hero.js';
+import { makeTube } from './art/pulpa.js';
 import { G } from './state.js';
 import { input } from './input.js';
 import { fx, P, Trail, rnd } from './fx.js';
@@ -51,7 +52,7 @@ export class Player {
     this.vel.x = dx * k; this.vel.z = dz * k; this.vel.y = this.swim ? 0 : 4.5; this.onGround = false;
     this.inv = 1.3; this.set('hurt'); this.face('hurt', 0.7); this.sqV = -6;
     this.m.draw(false); this.drawn = 0; this.trail.reset();
-    if (!this.crack && !o.heavy) {
+    if (!this.crack) {
       this.crack = true; audio.sfx('hurt'); fx.shake(0.12, 0.2); fx.stop(0.05);
       fx.burst(P['flake' + clamp(this.layers, 1, 3)], this.pos.x, this.pos.y + 0.5, this.pos.z, 5, { speed: 2, up: 2.5, life: 0.6, size: 0.28 });
       if (G.ui) G.ui.onCrack();
@@ -68,19 +69,19 @@ export class Player {
     fx.burst(P['flake' + clamp(from, 1, 3)], p.x, p.y + 0.5, p.z, 14, { speed: 3.2, up: 4, life: 0.9, size: 0.3, floor: this.groundY + 0.05, bounce: 0.3 });
     G.gas(p.x, p.y + 0.3, p.z, 4.4);
     this.m.flash(1);
-    if (G.ui) G.ui.onLayer(from, this.layers);
+    if (G.ui) G.ui.onLayer(from, this.layers, voluntary);
     if (this.layers <= 0) this.die();
   }
   heal(n = 1) {
     if (this.layers >= this.maxLayers && !this.crack) return false;
-    this.crack = false;
+    this.crack = false; const up = this.layers < this.maxLayers;
     if (this.layers < this.maxLayers) {
       this.setLayers(Math.min(this.maxLayers, this.layers + n));
       fx.ring(this.pos.x, this.pos.y + 0.1, this.pos.z, { r0: 0.2, r1: 1.3, t: 0.4, c: 11, th: 0.25 });
       fx.burst(P.sqG, this.pos.x, this.pos.y + 0.4, this.pos.z, 8, { speed: 1.6, up: 3, g: 5, life: 0.6, size: 0.2 });
       this.sqV = 7;
     }
-    audio.sfx('ring'); if (G.ui) G.ui.onHeal();
+    audio.sfx('ring'); if (G.ui) G.ui.onHeal(up);
     this.face('happy', 0.6);
     return true;
   }
@@ -99,12 +100,29 @@ export class Player {
     this.set('root'); this.rootAt = b; this.vel.set(0, 0, 0); this.rootN = 0; this.rootDone = 0;
     audio.sfx('root'); this.face('sleep', 99); this.m.draw(false); this.drawn = 0;
   }
-  useItem(id) { if (id === 'mondador') this.peel(); }
+  useItem(id) { if (id === 'mondador') this.peel(); else if (id === 'ajo') this.dropBomb(); else if (id === 'cerbatana') this.startShoot(); }
+  // el ajo bravo: lo planta delante con la mecha encendida
+  dropBomb() {
+    if (this.busy || this.swim) { audio.sfx('error'); return; }
+    if ((G.save.ajos || 0) <= 0) { audio.sfx('error'); this.face('sad', 0.6); fx.one(P.ask, this.pos.x, this.pos.y + this.h + 0.5, this.pos.z, { vy: 0.8, life: 0.6, size: 0.42 }); G.hintOnce('sinajos', 'SINAJOS'); return; }
+    if (G.level.ents.filter(e => e.fuse > 0 && !e.dead).length >= 3) { audio.sfx('error'); return; }
+    G.save.ajos--; if (G.ui) G.ui.onAmmo();
+    const d = this.r + 0.45, x = this.pos.x + Math.sin(this.yaw) * d, z = this.pos.z + Math.cos(this.yaw) * d;
+    const ok = G.level.free(x, this.pos.y + 0.4, z, 0.3, 0.4);
+    G.spawnBomb(ok ? x : this.pos.x, this.pos.y + 0.25, ok ? z : this.pos.z);
+    audio.sfx('root', { pitch: 1.4 }); this.strainT = 0.22; this.face('brave', 0.5); this.sqV = -4;
+  }
+  startShoot() {
+    if (this.busy || this.swim || this.shotCd > 0) { if (this.swim) audio.sfx('error'); return; }
+    this.set('shoot'); this.fired = false; this.m.draw(false); this.drawn = 0; this.face('effort', 0.4);
+    if (!this.tube) { this.tube = makeTube(); this.m.sq.add(this.tube); }
+    this.tube.visible = true;
+  }
 
   // ───────── actualización ─────────
   update(dt) {
     const L = G.level, p = this.pos, v = this.vel, m = this.m;
-    this.st += dt; this.inv = Math.max(0, this.inv - dt); this.rollCd -= dt; this.drawn -= dt; this.faceHold -= dt;
+    this.st += dt; this.inv = Math.max(0, this.inv - dt); this.rollCd -= dt; this.shotCd = (this.shotCd || 0) - dt; if (this.tube && this.state !== 'shoot') this.tube.visible = false; this.drawn -= dt; this.faceHold -= dt;
     const ctl = G.lock <= 0 && this.state !== 'dead' && this.state !== 'cine';
     // dirección pedida en el mundo
     let mx = 0, mz = 0;
@@ -173,6 +191,16 @@ export class Player {
           if (this.buffer && this.combo < 3) this.startAttack(this.combo + 1);
           else { this.set('free'); this.drawn = 2.2; this.combo = 0; this.trail.reset(); }
         }
+        break;
+      }
+      case 'shoot': {
+        // toma aire, sopla y la caña da un latigazo
+        v.x *= 1 - Math.min(1, 9 * dt); v.z *= 1 - Math.min(1, 9 * dt);
+        if (tgt) this.yaw = turn(this.yaw, Math.atan2(tgt.pos.x - p.x, tgt.pos.z - p.z), 16 * dt);
+        else if (mag > 0.3 && !this.fired) this.yaw = turn(this.yaw, Math.atan2(mx, mz), 9 * dt);
+        if (this.st < 0.1) this.sqY = lerp(this.sqY, 1.12, 0.3);
+        else if (!this.fired) { this.fired = true; G.shootSeed(this); this.sqV = -7; this.face('wow', 0.25); }
+        if (this.st > 0.26) { this.set('free'); this.shotCd = 0.12; if (this.tube) this.tube.visible = false; }
         break;
       }
       case 'hurt': {
@@ -404,6 +432,7 @@ export class Player {
     if (this.state === 'peel') { const k = Math.min(1, this.st / 0.28); L_ = [-0.42, 0.75 + k * 0.1, 0.2]; R_ = [0.42, 0.75 + k * 0.1, 0.2]; }
     if (this.state === 'climb') { L_ = [-0.4, 0.95, 0.35]; R_ = [0.4, 0.95, 0.35]; }
     if (this.strainT > 0) { L_ = [-0.3, 0.5, 0.55]; R_ = [0.3, 0.5, 0.55]; }
+    if (this.state === 'shoot') { const k = this.fired ? 0.1 : 0; L_ = [-0.16, 0.5, 0.52 + k]; R_ = [0.16, 0.46, 0.74 + k]; if (this.tube) this.tube.position.set(0, 0.47, 0.42 + (this.fired ? Math.max(0, 0.12 - (this.st - 0.1) * 0.8) : -this.st * 0.4)); }
     if (this.pose) { if (this.pose.L) L_ = this.pose.L; if (this.pose.R) R_ = this.pose.R; }
     // la Hoja
     if (this.state === 'attack') {

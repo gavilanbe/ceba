@@ -8,12 +8,13 @@ import { Player, angDiff } from './player.js';
 import { Cam } from './camera.js';
 import { Candela } from './creatures.js';
 import { LEVELS } from './levels.js';
-import { ui, drawUI, UI, onionGauge } from './ui.js';
+import { ui, drawUI, UI, onionGauge, layerRow } from './ui.js';
 import { Menu } from './menu.js';
 import { Title } from './title.js';
 import { TXT } from './text.js';
 import { clamp, lerp, ease } from './px.js';
 import './ents.js';
+import './ents2.js';
 
 const q = new URLSearchParams(location.search);
 G.manual = q.has('manual'); G.debug = q.has('debug');
@@ -30,6 +31,7 @@ function applyEnv(L) {
   sky.material.uniforms.uC.value = L.sky; sky.material.uniforms.uStars.value = L.stars || 0;
   U.uFog.value = L.fog[2]; U.uFogR.value.set(L.fog[0], L.fog[1]); U.uDark.value = L.dark; U.uAmb.value = L.amb; U.uQ.value = L.dark > 0.5 ? 2 : 4;
 }
+G.applyEnv = applyEnv;
 G.load = (name, at) => {
   if (G.level) scene.remove(G.level.group);
   fx.clear(); G.slimes.length = 0; G.peels.length = 0; G.target = null; G.boss = null; G.actionEnt = null; G.speaker = null;
@@ -39,7 +41,7 @@ G.load = (name, at) => {
   player.place(s[0], s[1], s[2], s[3] || 0); player.hidden = false; player.frozen = false; player.inv = 0; player.faceOv = null; player.pose = null;
   cam.reset((s[3] || 0) + Math.PI);
   candela.show(!!flag('intro'), s[0], s[1] + 1.5, s[2]); candela.goal = null;
-  candela.lr = L.dark > 0.5 ? 5.2 : 2.5;
+  candela.lr = L.candela || (L.dark > 0.5 ? 5.2 : 2.5);
   return L;
 };
 G.goto = function* (name, at, o = {}) {
@@ -78,8 +80,8 @@ G.onDeath = () => run(function* () {
   yield* G.fade(1, 0.9, 0); G.save.deaths++;
   let t0 = 0, fill = 0; const max = G.save.maxLayers;
   UI.top = (t, dt) => {
-    t0 += dt; onionGauge(t, W / 2, 70, Math.floor(fill), max, { core: 6, th: 6 });
-    t.textC(TXT.MUERTE, W / 2, 112, 7); if (t0 > 1.4 && fill === 0 && Math.floor(t0 * 2) % 2) t.textC('Espacio: volver a brotar', W / 2, 130, 13);
+    t0 += dt; onionGauge(t, W / 2, 58, Math.floor(fill), max, { core: 5, th: max > 4 ? 4 : 5 }); layerRow(t, Math.round(W / 2 - max * 6.5), 92, Math.floor(fill), max, false);
+    t.textC(TXT.MUERTE, W / 2, 114, 7); if (t0 > 1.4 && fill === 0) { t.textC('Te quedaste sin capas. Vuelves al último bancal.', W / 2, 128, 6); if (Math.floor(t0 * 2) % 2) t.textC('Espacio: volver a brotar', W / 2, 144, 13); }
   };
   audio.jingle('gameover'); yield* wait(1.4);
   for (;;) { yield; if (input.hit('a') || input.hit('start')) break; }
@@ -158,7 +160,7 @@ G.startNew = function* () {
   yield* Title.intro();
 };
 G.startContinue = function* () {
-  const s = loadSave(); G.save = s; player.maxLayers = s.maxLayers; player.crack = !!s.crack; player.setLayers(clamp(s.layers || s.maxLayers, 1, s.maxLayers), true);
+  const s = loadSave(); G.save = s; if (!LEVELS[s.spawn.level]) s.spawn = { level: 'villa', at: 'cama' }; player.maxLayers = s.maxLayers; player.crack = !!s.crack; player.setLayers(clamp(s.layers || s.maxLayers, 1, s.maxLayers), true);
   yield* G.fade(1, 0.5, 0); Title.leave(); G.fade_ = 0;
   UI.S.fade = 0; UI.S.iris = { k: 1, cx: W / 2, cy: H / 2 };
   yield* G.goto(s.spawn.level, s.spawn.at, { irisDone: true, from: null });
@@ -187,7 +189,7 @@ window.game = {
   boot(level = 'villa', at, flags = {}, items = {}) {
     G.scripts.length = 0; G.lock = 0; G.cine = false; UI.over = null; UI.top = null; UI.S.iris = null; UI.S.fade = 0; UI.under = null;
     G.save = newSave(); Object.assign(G.save.flags, { intro: 1, ...flags }); Object.assign(G.save.items, items);
-    if (items.mondador) G.save.c[0] = 'mondador'; if (items.capa) G.save.maxLayers = 4;
+    if (items.mondador) G.save.c[0] = 'mondador'; if (items.ajo) { G.save.c[1] = 'ajo'; G.save.ajos = 10; G.save.flags.ajo = 1; } if (items.cerbatana) { G.save.c[2] = 'cerbatana'; G.save.flags.cerbatana = 1; } if (items.capa) G.save.maxLayers = 3 + items.capa;
     player.maxLayers = G.save.maxLayers; player.crack = false; player.setLayers(G.save.maxLayers, true);
     Title.leave(); G.mode = 'play'; const L = G.load(level, at); this.step(2); return Object.keys(L.spawn);
   },
