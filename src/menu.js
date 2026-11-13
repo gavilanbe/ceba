@@ -16,7 +16,7 @@ const PAGES = [
 ];
 const PX = 124, PY = 18, PW = 190, PH = 156;
 const bufA = new Tex(W, H), bufB = new Tex(W, H);
-const SLOTS = ['hoja', 'mondador', 'ajo', 'cerbatana', null, 'llave', 'llaveRaiz', 'capa', null, null];
+const SLOTS = ['hoja', 'mondador', 'ajo', 'cerbatana', 'zarcillo', 'llave', 'llaveRaiz', 'capa', null, null];
 const S = { open: 0, closing: false, page: 0, prev: 0, peel: 1, dir: 1, t: 0, cur: 0, eco: 0, opt: 0, viewKey: null };
 
 export const Menu = {

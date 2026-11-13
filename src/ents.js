@@ -194,6 +194,7 @@ export class Chest extends Ent {
       p.pose = null; p.faceOv = null;
       yield* G.giveItem(c.item, { from: c, amount: c.amount });
       if (c.item === 'mondador') G.hint('H_MUDA', 8);
+      if (c.item === 'zarcillo') G.hint('H_ZARCILLO', 9);
       G.cam.release(0.6); p.set('free'); G.lock--; G.cine = false; G.level.resumeMusic();
     });
   }

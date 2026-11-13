@@ -189,7 +189,7 @@ window.game = {
   boot(level = 'villa', at, flags = {}, items = {}) {
     G.scripts.length = 0; G.lock = 0; G.cine = false; UI.over = null; UI.top = null; UI.S.iris = null; UI.S.fade = 0; UI.under = null;
     G.save = newSave(); Object.assign(G.save.flags, { intro: 1, ...flags }); Object.assign(G.save.items, items);
-    if (items.mondador) G.save.c[0] = 'mondador'; if (items.ajo) { G.save.c[1] = 'ajo'; G.save.ajos = 10; G.save.flags.ajo = 1; } if (items.cerbatana) { G.save.c[2] = 'cerbatana'; G.save.flags.cerbatana = 1; } if (items.capa) G.save.maxLayers = 3 + items.capa;
+    if (items.mondador) G.save.c[0] = 'mondador'; if (items.ajo) { G.save.c[1] = 'ajo'; G.save.ajos = 10; G.save.flags.ajo = 1; } if (items.cerbatana) { G.save.c[2] = 'cerbatana'; G.save.flags.cerbatana = 1; } if (items.zarcillo) { G.save.c[items.mondador ? 0 : 2] = 'zarcillo'; G.save.flags.zarcillo = 1; } if (items.capa) G.save.maxLayers = 3 + items.capa;
     player.maxLayers = G.save.maxLayers; player.crack = false; player.setLayers(G.save.maxLayers, true);
     Title.leave(); G.mode = 'play'; const L = G.load(level, at); this.step(2); return Object.keys(L.spawn);
   },

@@ -39,6 +39,10 @@ export const TXT = {
   H_AJO: 'DEJA UN AJO CON *U · I · O* Y APÁRTATE. SI LE DAS UN TAJO O RUEDAS CONTRA ÉL, SALE DISPARADO.',
   SINAJOS: 'NO TE QUEDAN *AJOS*. ROMPE TINAJAS, O CÓMPRASELOS A QUIEN LOS VENDA.',
   H_PEPITA: '¡UNA _PEPITA DE ORO_! LA YAYA MORADA, LA DEL ESTANQUE DE VILLA RISTRA, LAS CAMBIA POR ALGO BUENO. CUATRO HACEN UN TRATO.',
+  H_TECNICAS: 'DOS TRUCOS DE LA HOJA: MANTÉN *J* DESPUÉS DE UN TAJO Y SUELTA PARA EL _REMOLINO_. Y EN EL AIRE, *J* CAE EN _PICADO_.',
+  H_GANCHO: 'ESE POSTE CON ARGOLLA ES UN _GANCHO_. CON LAS MANOS NO LLEGAS: HARÍA FALTA ALGO LARGO QUE SE ENROSQUE.',
+  H_ZARCILLO: 'LLEVAS EL ZARCILLO EN *U*. EN EL ZURRÓN (*INTRO*) ELIGES QUÉ VA EN CADA BOLSILLO: PONTE SOBRE EL OBJETO Y PULSA *U · I · O*.',
+  H_ZARCILLO_OK: '¡YIIIJA! CUANDO LA ARGOLLA DE UN GANCHO BRILLA, ESTÁ A TIRO.',
   H_SETA: '¡BOING! LAS SETAS TE MANDAN PARA ARRIBA. EN EL AIRE PUEDES SEGUIR MOVIÉNDOTE.',
   H_MOHIN0: '_MOHÍNES_. NO LES DES EN SECO: SE PARTEN EN DOS. HAZLOS *LLORAR* PRIMERO... O USA UN AJO.',
   H_MOHIN: '¡TE LO DIJE! AHORA SON DOS. LOS PEQUEÑOS YA NO SE PARTEN MÁS.',
@@ -104,6 +108,7 @@ export const TXT = {
   C_LOMBRIGUERA: 'LOMBRIGUERA. 212 ANILLOS CENSADOS.\nCAPA III: LA PULPA.',
   C_RAIZ: 'LA RAÍZ MADRE.\nBAJA EL AGUA DE ARRIBA Y SUBE LA FUERZA DE ABAJO. *NO TOCAR EL MOHO.*',
   C_PASO: 'DON PASO: AJOS, RIEGOS Y PACIENCIA.\nSE ATIENDE DESPACIO.',
+  C_ZARCILLO: 'AHÍ ARRIBA GUARDO LO QUE ME SOBRA.\n— LA RAÍZ MADRE (DICTADO A UNA LOMBRIZ)',
   C_SETAL: '← EL SETAL.\nPROHIBIDO BOTAR DESPUÉS DE COMER.',
   C_RAICILLAR: '→ LOS RAICILLARES.\nCUIDADO: GORGOJOS SUELTOS. NO TIENEN FRENOS.',
   C_DESFILADERO: '↑ LA RAICERA.\n*CERRADA POR MOHO* HASTA NUEVO AVISO. FIRMADO: LA ALCALDESA.',
@@ -116,12 +121,13 @@ export const TXT = {
   PUERTA_JEFE2: 'LA MADRIGUERA. LA PUERTA TIENE UNA CERRADURA DE RAÍZ Y, AL OTRO LADO, ALGO RASCA.',
   // ── ceremonia y objetos ──
   BROTAR_1: ['TE PLANTAS EN LA TIERRA TIBIA DEL BANCAL VIEJO.', 'EL SOL TE DA EN LA CORONILLA. ALGO, MUY DENTRO, EMPUJA HACIA ARRIBA...'],
-  ITEM_HOJA: ['¡TE HA BROTADO LA *HOJA*! ES TUYA DE VERDAD: TE HA SALIDO DE LA CABEZA.', 'CORTA CON *J*. TRES TAJOS SEGUIDOS ACABAN EN UN GOLPE FUERTE. TAMBIÉN SIEGA CEBOLLINO Y ROMPE TINAJAS.'],
+  ITEM_HOJA: ['¡TE HA BROTADO LA *HOJA*! ES TUYA DE VERDAD: TE HA SALIDO DE LA CABEZA.', 'CORTA CON *J*. TRES TAJOS SEGUIDOS ACABAN EN UN GOLPE FUERTE. TAMBIÉN SIEGA CEBOLLINO Y ROMPE TINAJAS.', 'SI MANTIENES *J* DESPUÉS DE UN TAJO Y SUELTAS, HACES UN _REMOLINO_. Y SI PULSAS *J* EN EL AIRE, CAES EN _PICADO_.'],
   ITEM_MONDADOR: ['¡EL *MONDADOR*! UN PELADOR DE BOLSILLO. CON *U* TE QUITAS UNA CAPA.', 'AL PELARTE SUELTAS UNA NUBE QUE HACE _LLORAR_ A TODO LO QUE TE RODEA, TE VUELVES MÁS PEQUEÑA Y DEJAS UNA *MUDA* QUE PESA COMO TÚ.'],
   ITEM_LLAVE: ['¡LA *LLAVE MAYOR*! ABRE LA COMPUERTA DEL DESAGÜE. ESTÁ PEGAJOSA.'],
   ITEM_CAPA: ['¡UN *ANILLO DE CAPA*! DESDE HOY LLEVAS UNA CAPA MÁS.', 'EL MUNDO TIENE SIETE. TÚ YA VAS POR CUATRO.'],
   ITEM_AJO: ['¡UN ZURRÓN DE *AJO BRAVO*! DIEZ DIENTES CON MUY MALAS PULGAS.', 'DEJA UNO CON *U*, *I* U *O* Y APÁRTATE: REVIENTA EL _MOHO_ Y LAS PIEDRAS AGRIETADAS. UN TAJO O UN RODILLAZO LO MANDAN VOLANDO.'],
   ITEM_CERBATANA: ['¡LA *CERBATANA*! UNA CAÑA DE CEBOLLINO HUECA. SOPLA PEPITAS Y NO SE GASTAN NUNCA.', 'APUNTA SOLA A LO QUE TENGAS DELANTE. ABRE LAS _YEMAS_, TUMBA A LOS TRIPS Y MOLESTA MUCHÍSIMO A QUIEN TENGA LOS OJOS GRANDES.'],
+  ITEM_ZARCILLO: ['¡EL *ZARCILLO*! UN BROTE DE LA RAÍZ MADRE QUE SE ENROSCA EN TODO LO QUE TOCA.', 'LÁNZALO A UN _GANCHO_ Y TE LLEVA VOLANDO. TAMBIÉN TRAE LO QUE ESTÉ LEJOS, DA TIRONES A LAS PLAGAS Y PONE A LOS GORGOJOS PATAS ARRIBA.'],
   ITEM_LLAVERAIZ: ['¡LA *LLAVE DE RAÍZ*! ABRE LA MADRIGUERA DE LA RAICERA. TODAVÍA ESTÁ VIVA: SE MUEVE UN POCO.'],
   ITEM_L20: ['¡20 LÁGRIMAS! ALGUIEN LLORÓ MUCHO PARA LLENAR ESTE COFRE.'],
   ITEM_L50: ['¡50 LÁGRIMAS! UN LAGRIMÓN DE LOS DE ANTES.'],
@@ -181,18 +187,19 @@ export const OBJ = [
 export const objective = () => { const f = G.save.flags; return OBJ[f.fin2 ? 16 : f.jefe2 ? 15 : f.llaveRaiz ? 14 : f.cerbatana ? 13 : f.raicera ? 12 : f.anelida ? 11 : f.pulpa ? 10 : f.selloRoto ? 9 : f.ajo ? 8 : f.fin ? 7 : f.jefe ? 6 : f.llave ? 5 : f.mondador ? 4 : f.cisterna ? 3 : f.hoja ? 2 : f.consejo ? 1 : 0]; };
 
 export const ITEMS = {
-  hoja: { name: 'LA HOJA', big: true, make: makeHojaItem, rect: [108, 24, 20, 60], text: 'ITEM_HOJA', zoom: 1.3, inHand: true, desc: 'TE BROTÓ EN EL BANCAL VIEJO. TRES TAJOS CON J; EL TERCERO PEGA FUERTE.', give() { G.player.m.setHoja(true); G.save.flags.hoja = 1; } },
+  hoja: { name: 'LA HOJA', big: true, make: makeHojaItem, rect: [108, 24, 20, 60], text: 'ITEM_HOJA', zoom: 1.3, inHand: true, desc: 'TRES TAJOS CON J. MANTÉN Y SUELTA: REMOLINO. EN EL AIRE: PICADO.', give() { G.player.m.setHoja(true); G.save.flags.hoja = 1; } },
   mondador: { name: 'MONDADOR', make: A.makeMondador, rect: [0, 0, 32, 32], text: 'ITEM_MONDADOR', c: true, zoom: 1.0, desc: 'TE QUITA UNA CAPA: NUBE QUE HACE LLORAR, TAMAÑO MENOR Y UNA MUDA QUE PESA.', give() { G.save.flags.mondador = 1; } },
   llave: { name: 'LLAVE MAYOR', make: A.makeKey, rect: [32, 0, 24, 40], text: 'ITEM_LLAVE', zoom: 1.0, desc: 'ABRE LA COMPUERTA DEL DESAGÜE DE LA CISTERNA.', give() { G.save.flags.llave = 1; } },
   capa: { name: 'ANILLO DE CAPA', big: true, make: A.makeCapa, rect: [56, 0, 32, 24], text: 'ITEM_CAPA', zoom: 1.2, desc: 'UNA CAPA MÁS PARA LLEVAR ENCIMA.', give() { const p = G.player; p.maxLayers++; G.save.maxLayers = p.maxLayers; p.setLayers(p.maxLayers); p.crack = false; } },
   ajo: { name: 'AJO BRAVO', big: true, make: Q.makeAjoBomba, text: 'ITEM_AJO', c: true, zoom: 1.0, desc: 'REVIENTA EL MOHO Y LAS PIEDRAS AGRIETADAS. UN TAJO LO MANDA VOLANDO.', give() { G.save.flags.ajo = 1; G.save.ajos = Math.max(G.save.ajos || 0, 10); } },
   cerbatana: { name: 'CERBATANA', big: true, make: Q.makeCerbatana, text: 'ITEM_CERBATANA', c: true, zoom: 1.0, desc: 'SOPLA PEPITAS HACIA LO QUE TENGAS DELANTE. NO SE GASTAN.', give() { G.save.flags.cerbatana = 1; } },
+  zarcillo: { name: 'ZARCILLO', big: true, make: Q.makeZarcillo, text: 'ITEM_ZARCILLO', c: true, zoom: 1.0, desc: 'SE AGARRA A LOS GANCHOS Y TE LLEVA. TRAE BOTÍN LEJANO Y TUMBA GORGOJOS.', give() { G.save.flags.zarcillo = 1; if (!G.save.c.includes('zarcillo') && !G.save.c.includes(null)) G.save.c[0] = 'zarcillo'; } },
   llaveRaiz: { name: 'LLAVE DE RAÍZ', make: Q.makeLlaveRaiz, text: 'ITEM_LLAVERAIZ', zoom: 1.0, desc: 'ABRE LA MADRIGUERA DE LA RAICERA.', give() { G.save.flags.llaveRaiz = 1; } },
   l20: { tears: 20, text: 'ITEM_L20' }, l50: { tears: 50, text: 'ITEM_L50' },
 };
 
 // ── el guion está escrito en mayúsculas; aquí se pasa a frase con sus nombres propios ──
-const PROPER = ['Ceba', 'Candela', 'Bulbo', 'Villa Ristra', 'Consejo', 'Bancal Viejo', 'Túnica', 'Germen', 'Don Mildiu', 'Tapona', 'Chalota', 'Croqueta', 'Mondador', 'Llave Mayor', 'Cisterna', 'Hoja', 'Loma', 'Pozo del Llanto', 'Anillo de Capa', 'Espacio', 'Mayús', 'Intro', 'Yaya Morada', 'Anélida', 'Raigal', 'Raicera', 'Cavador', 'Pulpa', 'Raíz Madre', 'Don Paso', 'Tío Limo', 'Lombriguera', 'Jugo', 'Setal', 'Madriguera', 'Raicillares', 'Raicillar', 'Charca del Goteo', 'Mildiu'];
+const PROPER = ['Ceba', 'Candela', 'Bulbo', 'Villa Ristra', 'Consejo', 'Bancal Viejo', 'Túnica', 'Germen', 'Don Mildiu', 'Tapona', 'Chalota', 'Croqueta', 'Mondador', 'Llave Mayor', 'Cisterna', 'Hoja', 'Loma', 'Pozo del Llanto', 'Anillo de Capa', 'Espacio', 'Mayús', 'Intro', 'Yaya Morada', 'Anélida', 'Raigal', 'Raicera', 'Cavador', 'Pulpa', 'Raíz Madre', 'Don Paso', 'Tío Limo', 'Lombriguera', 'Jugo', 'Setal', 'Madriguera', 'Raicillares', 'Raicillar', 'Charca del Goteo', 'Mildiu', 'Zarcillo'];
 export function nice(s) {
   let name = ''; if (s[0] === '@') { const i = s.indexOf('|'); name = s.slice(0, i + 1); s = s.slice(i + 1); }
   s = s.toLocaleLowerCase('es');
@@ -207,7 +214,7 @@ export function nice(s) {
   }
   for (const w of PROPER) out = out.replace(new RegExp('(^|[^a-záéíóúüñ])' + w.toLocaleLowerCase('es') + '(?![a-záéíóúüñ])', 'gi'), (m, a) => a + w);
   out = out.replace(/la piel(?![a-záéíóúüñ])/gi, m => m[0] + 'a Piel').replace(/\*([a-z])\*/g, (m, a) => '*' + a.toUpperCase() + '*').replace(/([Cc])apa (i{1,3}|iv|vi{0,2}|v)(?![a-záéíóúüñ])/g, (m, c, n) => c + 'apa ' + n.toUpperCase());
-  out = out.replace(/ (u|i|o) · (i) · (o):/i, ' U · I · O:').replace(/con j;/, 'con J;');
+  out = out.replace(/ (u|i|o) · (i) · (o):/i, ' U · I · O:').replace(/con j;/, 'con J;').replace(/\*u · i · o\*/g, '*U · I · O*');
   return name + out;
 }
 for (const k in TXT) { if (k === 'FIN' || k === 'FIN2') continue; const v = TXT[k]; TXT[k] = Array.isArray(v) ? v.map(nice) : nice(v); }

@@ -9,7 +9,7 @@ import { NPC, Bicho, Pulgon, Babosa, Trips } from './creatures.js';
 import { Tapona } from './boss.js';
 import * as S from './story.js';
 import * as S2 from './story2.js';
-import { Breakable, Yema, Pepita, Seta } from './ents2.js';
+import { Breakable, Yema, Pepita, Seta, Gancho } from './ents2.js';
 import { pulpa, raicera } from './levels2.js';
 import { rng } from './px.js';
 import { fx, P, rnd } from './fx.js';
@@ -104,6 +104,10 @@ export function villa() {
   if (!flag('rocaVilla')) { const pp = flag('pp_villa2') ? null : L.add(new Pepita(31.5, 1.3, 5.5, 'pp_villa2', { hidden: true })); L.add(new Breakable(31.5, 1, 5.5, 2, 1.9, 2, { kind: 'grieta', key: 'rocaVilla', onBreak: () => pp && pp.appear() })); }
   else if (!flag('pp_villa2')) L.add(new Pepita(31.5, 1.3, 5.5, 'pp_villa2'));
   { const pp = flag('pp_villa3') ? null : L.add(new Pepita(0, 0.4, -27.4, 'pp_villa3', { hidden: !flag('yemaVilla') })); L.add(new Yema(0, 3.6, -29.95, 0, { wall: true, key: 'yemaVilla', s: 1.5, onOn: () => pp && pp.appear(0, 3, -28.6) })); }
+  // ganchos para el zarcillo: el rellano del sureste y el mojón del oeste
+  L.add(new Gancho(27, 2, 24.2)); L.add(new Pot(32.6, 2, 28.4, { loot: { tears: 5, ring: 0.5 } })); if (!flag('pp_villa4')) L.add(new Pepita(31, 2.3, 27, 'pp_villa4'));
+  L.block(-30.5, 0, 11.5, -27.5, 3, 14.5, { top: TI.hierba, side: TI.estrato, sideTop: TI.hierbaLado, mat: 'grass' });
+  L.add(new Gancho(-29, 3, 13)); if (!flag('pp_villa5')) L.add(new Pepita(-29.8, 3.3, 13.8, 'pp_villa5'));
   // cielo: sol y la tira de piel que alguien está pelando
   const sun = A.makeSkyCard([0, 40, 32, 32], 26, 26); sun.position.set(70, 62, -120); sun.lookAt(0, 10, 0); L.group.add(sun);
   const strip = A.makeSkyCard([32, 40, 64, 24], 90, 30); strip.position.set(-80, 70, -140); strip.rotation.set(0.2, 0.5, -0.5); L.group.add(strip); L.strip = strip;

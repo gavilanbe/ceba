@@ -313,7 +313,7 @@ export class Gorgojo extends Enemy {
   }
   get soft() { return this.st === 'flip' || this.cryT > 0; }
   hit(o) {
-    if (o.blast) { this.st = 'flip'; this.stT = 3; return super.hit(o); }
+    if (o.blast || o.whip || o.slam) { this.st = 'flip'; this.stT = o.blast ? 3 : 2.6; if (!o.blast) { audio.sfx('shell', { pitch: 1.2 }); this.vel.y = 4.5; this.onGround = false; return super.hit({ ...o, dmg: 0 }) || true; } return super.hit(o); }
     if (!this.soft) { this.sqV = -4; audio.sfx('shell', { pitch: 0.9 + rnd() * 0.2 }); fx.sparks(this.pos.x, this.pos.y + 0.5, this.pos.z, 3); G.hintOnce('gorgojo', 'H_GORGOJO'); seen('gorgojo'); if (!o.seed && this.st === 'walk') { this.st = 'aim'; this.stT = 0.4; } return 'bounce'; }
     return super.hit(o);
   }

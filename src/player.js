@@ -27,7 +27,7 @@ export class Player {
     this.pushT = 0; this.climbT = 0; this.stepT = 0; this.rollCd = 0; this.safe = new THREE.Vector3(); this.safeT = 0;
     this.auto = null; this.trail = new Trail(10, 7, 11); this.idleT = 0; this.rollA = 0; this.lean = 0; this.yawV = 0;
     this.rootAt = null; this.airT = 0; this.wasSwim = false; this.sink = 0; this.strainT = 0; this.slimeT = 0;
-    this.hidden = false; this.kb = new THREE.Vector3();
+    this.hidden = false; this.kb = new THREE.Vector3(); this.chg = 0; this.chgOn = false; this.whipCd = 0;
   }
   get scale() { return SCALE[clamp(this.layers, 0, 7)]; }
   get r() { return 0.4 * this.scale; }
@@ -50,7 +50,7 @@ export class Player {
     let dx = this.pos.x - fx_, dz = this.pos.z - fz_; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
     const k = o.knock ?? 6;
     this.vel.x = dx * k; this.vel.z = dz * k; this.vel.y = this.swim ? 0 : 4.5; this.onGround = false;
-    this.inv = 1.3; this.set('hurt'); this.face('hurt', 0.7); this.sqV = -6;
+    this.inv = 1.3; this.chgOn = false; this.set('hurt'); this.face('hurt', 0.7); this.sqV = -6;
     this.m.draw(false); this.drawn = 0; this.trail.reset();
     if (!this.crack) {
       this.crack = true; audio.sfx('hurt'); fx.shake(0.12, 0.2); fx.stop(0.05);
@@ -100,7 +100,12 @@ export class Player {
     this.set('root'); this.rootAt = b; this.vel.set(0, 0, 0); this.rootN = 0; this.rootDone = 0;
     audio.sfx('root'); this.face('sleep', 99); this.m.draw(false); this.drawn = 0;
   }
-  useItem(id) { if (id === 'mondador') this.peel(); else if (id === 'ajo') this.dropBomb(); else if (id === 'cerbatana') this.startShoot(); }
+  useItem(id) { if (id === 'mondador') this.peel(); else if (id === 'ajo') this.dropBomb(); else if (id === 'cerbatana') this.startShoot(); else if (id === 'zarcillo') this.startWhip(); }
+  // el zarcillo: látigo-gancho
+  startWhip() {
+    if (this.busy || this.swim || this.whipCd > 0) { if (this.swim) audio.sfx('error'); return; }
+    this.set('whip'); this.chgOn = false; this.m.draw(false); this.drawn = 0; this.face('effort', 0.4); this.sqV = -5; G.whip(this);
+  }
   // el ajo bravo: lo planta delante con la mecha encendida
   dropBomb() {
     if (this.busy || this.swim) { audio.sfx('error'); return; }
@@ -122,7 +127,7 @@ export class Player {
   // ───────── actualización ─────────
   update(dt) {
     const L = G.level, p = this.pos, v = this.vel, m = this.m;
-    this.st += dt; this.inv = Math.max(0, this.inv - dt); this.rollCd -= dt; this.shotCd = (this.shotCd || 0) - dt; if (this.tube && this.state !== 'shoot') this.tube.visible = false; this.drawn -= dt; this.faceHold -= dt;
+    this.st += dt; this.inv = Math.max(0, this.inv - dt); this.rollCd -= dt; this.whipCd -= dt; this.shotCd = (this.shotCd || 0) - dt; if (this.tube && this.state !== 'shoot') this.tube.visible = false; this.drawn -= dt; this.faceHold -= dt;
     const ctl = G.lock <= 0 && this.state !== 'dead' && this.state !== 'cine';
     // dirección pedida en el mundo
     let mx = 0, mz = 0;
@@ -143,7 +148,7 @@ export class Player {
 
     switch (this.state) {
       case 'free': {
-        const want = SPEED * speedMul * (tgt || input.down.z && ctl ? 0.8 : 1);
+        const want = SPEED * speedMul * (tgt || input.down.z && ctl ? 0.8 : 1) * (this.chgOn ? 0.55 : 1);
         const acc = (this.onGround ? 34 : 9) * dt;
         const tx = mx * want, tz = mz * want;
         const dx = tx - v.x, dz = tz - v.z, dd = Math.hypot(dx, dz);
@@ -158,9 +163,19 @@ export class Player {
             if (G.actionEnt && G.actionEnt.interact) { input.pressed.a = false; G.actionEnt.interact(this); }
             else if ((this.onGround) && mag > 0.3 && this.rollCd <= 0) { input.pressed.a = false; this.startRoll(mx, mz, mag); }
           }
+          // remolino: se carga manteniendo el tajo y se suelta
+          if (this.chgOn) {
+            if (this.swim || !m.hasHoja) this.chgOn = false;
+            else if (input.down.b) {
+              const was = this.chg; this.chg += dt; m.draw(true); this.drawn = 1;
+              if (was < 0.5 && this.chg >= 0.5) { audio.sfx('blip', { pitch: 1.9 }); audio.sfx('ring', { pitch: 1.6, vol: 0.5 }); m.flash(0.7); fx.ring(p.x, this.groundY + 0.05, p.z, { r0: 1.6, r1: 0.3, t: 0.25, c: 11, th: 0.2 }); this.sqV = 4; }
+              if (rnd() < (this.chg >= 0.5 ? 0.7 : 0.25)) { const a = rnd() * 6.283, rr = this.chg >= 0.5 ? 0.5 : 1.1; fx.one(this.chg >= 0.5 ? P.star : P.sqG, p.x + Math.cos(a) * rr, p.y + 0.3 + rnd() * 0.7, p.z + Math.sin(a) * rr, { vx: -Math.cos(a) * 2, vz: -Math.sin(a) * 2, vy: 0.6, life: 0.3, size: this.chg >= 0.5 ? 0.3 : 0.14 }); }
+            } else { this.chgOn = false; if (this.chg >= 0.5 && this.onGround) this.startSpin(); }
+          }
           if (input.pressed.b) {
             input.pressed.b = false;
             if (this.swim) { audio.sfx('error'); }
+            else if (m.hasHoja && !this.onGround && this.airT > 0.1 && p.y - this.groundY > 0.9) this.startPlunge();
             else if (m.hasHoja) this.startAttack(1);
             else { audio.sfx('error'); this.face('sad', 0.5); fx.one(P.ask, p.x, p.y + this.h + 0.5, p.z, { vy: 0.8, life: 0.6, size: 0.42 }); G.hintOnce('sinhoja', 'SINHOJA'); }
           }
@@ -189,10 +204,28 @@ export class Player {
         if (!this.hitDone && f >= 0.28) { this.hitDone = true; this.strike(); }
         if (f >= 1) {
           if (this.buffer && this.combo < 3) this.startAttack(this.combo + 1);
-          else { this.set('free'); this.drawn = 2.2; this.combo = 0; this.trail.reset(); }
+          else { const last = this.combo; this.set('free'); this.drawn = 2.2; this.combo = 0; this.trail.reset(); if (ctl && input.down.b && !this.buffer) { this.chgOn = true; this.chg = 0; } if (last === 3) G.hintOnce('tecnicas', 'H_TECNICAS'); }
         }
         break;
       }
+      case 'spin': {
+        // remolino: una vuelta entera con la Hoja tendida
+        const f = this.st / 0.44;
+        v.x = lerp(v.x, mx * 2.2, 0.2); v.z = lerp(v.z, mz * 2.2, 0.2);
+        if (!this.hitDone && f >= 0.18) { this.hitDone = true; this.spinHit(); }
+        if (f >= 1) { this.set('free'); this.drawn = 2.2; this.trail.reset(); }
+        break;
+      }
+      case 'plunge': {
+        // picado: se encoge un instante en el aire y cae de punta
+        v.x *= 1 - Math.min(1, 6 * dt); v.z *= 1 - Math.min(1, 6 * dt);
+        if (this.st > 0.13) v.y = Math.min(v.y, -21);
+        if (this.swim || this.st > 2.5) { this.set('free'); this.trail.reset(); }
+        else if (this.onGround && this.st > 0.05) this.slam();
+        break;
+      }
+      case 'whip': { v.x *= 1 - Math.min(1, 10 * dt); v.z *= 1 - Math.min(1, 10 * dt); if (this.st > 1.6) this.set('free'); break; }
+      case 'hook': { this.swim = false; this.onGround = false; this.sync(dt); if (this.st > 1.5) this.set('free'); return; }
       case 'shoot': {
         // toma aire, sopla y la caña da un latigazo
         v.x *= 1 - Math.min(1, 9 * dt); v.z *= 1 - Math.min(1, 9 * dt);
@@ -260,6 +293,41 @@ export class Player {
     this.combo = n; this.set('attack'); this.buffer = false; this.hitDone = false; this.swingHits.clear();
     this.m.draw(true); this.drawn = 3; audio.sfx('swing' + n); this.face('brave', 0.5); this.trail.reset();
     if (n === 3) this.sqV = 5;
+  }
+  startSpin() {
+    this.set('spin'); this.hitDone = false; this.m.draw(true); this.drawn = 3; this.face('brave', 0.6); this.trail.reset(); this.sqV = 6;
+    audio.sfx('swing3', { pitch: 0.75 }); audio.sfx('swing1', { pitch: 1.3 });
+  }
+  startPlunge() {
+    this.set('plunge'); this.chgOn = false; this.m.draw(true); this.drawn = 3; this.face('brave', 0.8); this.trail.reset();
+    this.vel.y = Math.max(this.vel.y * 0.3, 4.5); this.sqV = 6; audio.sfx('swing2', { pitch: 0.8 });
+  }
+  // golpe en redondo alrededor de (x, z): remolino y picado
+  areaHit(x, z, r, dmg, o = {}) {
+    const p = this.pos; let any = false, bounced = false;
+    for (const e of G.level.ents.slice()) {
+      if (e.dead || (!e.hit && !e.cut)) continue;
+      const dx = e.pos.x - x, dz = e.pos.z - z, d = Math.hypot(dx, dz);
+      if (d > r + (e.r || 0.4) || Math.abs(e.pos.y - p.y) > 1.7 + (e.hh || 0)) continue;
+      if (e.cut) { e.cut(this); any = true; continue; }
+      const res = e.hit({ dmg, from: this, dx: dx / (d || 1), dz: dz / (d || 1), heavy: true, ...o });
+      if (res === 'bounce') bounced = true; else if (res) any = true;
+    }
+    if (bounced && !any) audio.sfx('bounce');
+    return any;
+  }
+  spinHit() {
+    const p = this.pos, r = 2.25 * (0.6 + 0.4 * this.scale), any = this.areaHit(p.x, p.z, r, 2, { spin: true });
+    fx.ring(p.x, this.groundY + 0.05, p.z, { r0: 0.4, r1: r + 0.3, t: 0.3, c: 11, th: 0.45 }); fx.ring(p.x, this.groundY + 0.05, p.z, { r0: 0.3, r1: r, t: 0.38, c: 7, th: 0.2 });
+    fx.dust(p.x, this.groundY, p.z, 6, { dark: G.level.dark > 0.3 }); fx.shake(any ? 0.22 : 0.1, 0.2); if (any) fx.stop(0.09);
+  }
+  slam() {
+    const p = this.pos, r = 2.1 * (0.6 + 0.4 * this.scale), any = this.areaHit(p.x, p.z, r, 2, { slam: true });
+    this.set('free'); this.drawn = 1.6; this.trail.reset(); this.sqV = -11; this.rollCd = 0.15;
+    audio.sfx('land'); audio.sfx('bounce', { pitch: 0.55 }); fx.shake(0.3, 0.3); fx.stop(any ? 0.1 : 0.04);
+    fx.ring(p.x, this.groundY + 0.05, p.z, { r0: 0.3, r1: r + 0.4, t: 0.32, c: 7, th: 0.5 }); fx.ring(p.x, this.groundY + 0.05, p.z, { r0: 0.2, r1: r, t: 0.45, c: 10, th: 0.22 });
+    fx.dust(p.x, this.groundY, p.z, 9, { dark: G.level.dark > 0.3, speed: 2.4 }); fx.burst(P.star, p.x, p.y + 0.3, p.z, 6, { speed: 3.4, up: 3, g: 8, life: 0.4, size: 0.36 });
+    for (const e of G.level.ents) if (e.onBonkNear && Math.hypot(e.pos.x - p.x, e.pos.z - p.z) < 2.6) e.onBonkNear(this);
   }
   // el tajo: quién está en el arco
   strike() {
@@ -371,6 +439,7 @@ export class Player {
     }
   }
   land(vy) {
+    if (this.state === 'plunge') { this.slam(); return; }
     const p = this.pos, hard = vy < -9;
     this.sqV = hard ? -9 : -5; audio.sfx('land', { vol: hard ? 1 : 0.6 });
     fx.dust(p.x, p.y, p.z, hard ? 6 : 3, { dark: G.level.dark > 0.3 });
@@ -407,14 +476,15 @@ export class Player {
     // inclinación
     this.lean = lerp(this.lean, this.state === 'free' ? run * 0.2 : 0, 0.2);
     let tx = this.lean, tz = clamp(-this.yawV * 0.03, -0.3, 0.3);
-    if (this.state === 'roll' || this.state === 'dead') tx = this.rollA;
+    if (this.state === 'roll' || this.state === 'dead' || this.state === 'hook') tx = this.rollA;
+    if (this.state === 'plunge') tx = 0.45;
     if (this.state === 'hurt') tx = -0.35;
     if (this.swim) { tx = Math.sin(t * 2.1) * 0.08 + run * 0.15; tz = Math.sin(t * 1.7) * 0.07; }
     if (this.strainT > 0) { this.strainT -= dt; tx = 0.3; }
     m.tilt.position.y = 0.48; m.sq.position.y -= 0.48;
     m.tilt.rotation.set(tx, 0, tz);
     // botas
-    const rolling = this.state === 'roll' || this.state === 'dead' || this.swim || this.state === 'root';
+    const rolling = this.state === 'roll' || this.state === 'dead' || this.state === 'hook' || this.swim || this.state === 'root';
     m.footL.visible = m.footR.visible = !rolling;
     const stride = 0.24 * run, lift = 0.15 * run;
     const air = !this.onGround && !this.swim;
@@ -433,6 +503,8 @@ export class Player {
     if (this.state === 'climb') { L_ = [-0.4, 0.95, 0.35]; R_ = [0.4, 0.95, 0.35]; }
     if (this.strainT > 0) { L_ = [-0.3, 0.5, 0.55]; R_ = [0.3, 0.5, 0.55]; }
     if (this.state === 'shoot') { const k = this.fired ? 0.1 : 0; L_ = [-0.16, 0.5, 0.52 + k]; R_ = [0.16, 0.46, 0.74 + k]; if (this.tube) this.tube.position.set(0, 0.47, 0.42 + (this.fired ? Math.max(0, 0.12 - (this.st - 0.1) * 0.8) : -this.st * 0.4)); }
+    if (this.state === 'whip') { L_ = [-0.5, 0.42, -0.1]; R_ = [0.3, 0.58, 0.6]; }
+    if (this.state === 'hook') { L_ = [-0.3, 0.8, 0.4]; R_ = [0.3, 0.9, 0.5]; }
     if (this.pose) { if (this.pose.L) L_ = this.pose.L; if (this.pose.R) R_ = this.pose.R; }
     // la Hoja
     if (this.state === 'attack') {
@@ -445,12 +517,19 @@ export class Player {
       L_ = [-0.55, 0.5, -0.15];
       m.tilt.rotation.y = this.combo === 1 ? lerp(0.5, -0.5, e) : this.combo === 2 ? lerp(-0.5, 0.5, e) : 0;
       if (this.combo === 3) m.tilt.rotation.x = lerp(-0.25, 0.4, e);
+    } else if (this.state === 'spin') {
+      const e = ease.out3(clamp(this.st / 0.44));
+      m.tilt.rotation.y = -e * Math.PI * 2; R_ = [0.72, 0.5, 0.05]; L_ = [-0.6, 0.55, -0.1];
+      m.handR.quaternion.setFromUnitVectors(UP, _v.set(1, 0.08, 0.15).normalize());
+    } else if (this.state === 'plunge') {
+      m.tilt.rotation.y = 0; R_ = [0.2, 0.42, 0.3]; L_ = [-0.2, 0.5, 0.3];
+      m.handR.quaternion.setFromUnitVectors(UP, _v.set(0, -1, 0.25).normalize());
     } else {
       m.tilt.rotation.y = 0;
       if (m.hoja.visible && !this.pose) { R_ = [0.58, 0.42, 0.22]; m.handR.quaternion.setFromUnitVectors(UP, _v.set(0.25, 0.75, 0.6).normalize()); if (this.drawn <= 0) { m.draw(false); audio.sfx('swing1', { vol: 0.25, pitch: 1.6 }); } }
     }
     const hl = dt > 0 ? 0.45 : 1;
-    m.handL.position.lerp(_a.set(L_[0], L_[1], L_[2]), hl); m.handR.position.lerp(_b.set(R_[0], R_[1], R_[2]), this.state === 'attack' ? 1 : hl);
+    m.handL.position.lerp(_a.set(L_[0], L_[1], L_[2]), hl); m.handR.position.lerp(_b.set(R_[0], R_[1], R_[2]), this.state === 'attack' || this.state === 'spin' || this.state === 'plunge' ? 1 : hl);
     // hojas: muelle
     const windy = Math.sin(t * 1.9) * 0.07;
     for (let i = 0; i < m.leaves.length; i++) {
@@ -473,14 +552,14 @@ export class Player {
     if (this.faceOv) m.setFace(this.faceOv);
     else if (this.faceHold <= 0) {
       this.blinkT -= dt;
-      let f = this.state === 'roll' ? 'effort' : this.state === 'attack' ? 'brave' : this.state === 'climb' ? 'effort' : this.crack ? 'sad' : 'normal';
+      let f = this.state === 'roll' ? 'effort' : this.state === 'attack' || this.state === 'spin' || this.state === 'plunge' ? 'brave' : this.state === 'climb' ? 'effort' : this.crack ? 'sad' : 'normal';
       if (this.strainT > 0) f = 'effort';
       if (this.blinkT < 0.12 && (f === 'normal' || f === 'sad')) f = 'blink';
       if (this.blinkT <= 0) this.blinkT = 1.8 + rnd() * 3;
       m.setFace(f);
     }
     // estela
-    if (this.state === 'attack' && m.hoja.visible) {
+    if ((this.state === 'attack' || this.state === 'spin' || this.state === 'plunge') && m.hoja.visible) {
       m.root.updateMatrixWorld(true);
       const hm = m.hoja.children[0];
       this.trail.push(hm.localToWorld(_a.set(0, 0.3, 0)).clone(), hm.localToWorld(_b.set(0, 1.08, 0)).clone());

@@ -110,6 +110,11 @@ export function sheetF() {
   // seta de luz [64,104,32,24]: sombrero 8×4 azul verdoso; pie [96,120,16,8]
   t.rect(64, 104, 32, 24, 12); t.rect(64, 104, 32, 3, 7); t.rect(64, 122, 32, 6, 1); for (let x = 65; x < 96; x += 4) { t.px(x, 110 + (x % 5), 7); t.rect(x + 2, 116, 1, 5, 1); }
   t.rect(96, 120, 16, 8, 6); t.rect(96, 120, 16, 1, 7); t.rect(96, 126, 16, 2, 13);
+  // zarcillo: tallo [96,40,8,16], punta [104,40,8,8], argolla de gancho [96,56,16,16], rollo (objeto) [96,72,16,16]
+  t.rect(96, 40, 8, 16, 11); t.rect(96, 40, 2, 16, 3); t.rect(102, 40, 2, 16, 10); for (let y = 43; y < 56; y += 5) t.rect(96, y, 8, 1, 3);
+  t.rect(104, 40, 8, 8, 10); t.rect(104, 40, 8, 2, 7); t.rect(104, 46, 8, 2, 9);
+  t.erase(96, 56, 16, 16); t.ring(103.5, 63.5, 7, 9, 3); t.ring(103.5, 63.5, 7, 10, 2); t.px(99, 59, 7); t.px(100, 58, 7); t.rect(102, 69, 3, 2, 4);
+  t.erase(96, 72, 16, 16); t.ring(103.5, 80.5, 6.5, 3, 2); t.ring(103.5, 80.5, 6.5, 11, 1); t.ring(103.5, 80.5, 3.5, 11, 1); t.rect(108, 73, 3, 3, 10); t.px(109, 74, 7); t.line(104, 80, 109, 75, 11); t.rect(97, 85, 3, 2, 11); t.px(96, 87, 3);
   return (_F = { t, tex: texFrom(t) });
 }
 const mF = o => mat(sheetF().tex, o);
@@ -264,4 +269,25 @@ export function makeSeta(s = 1) {
   cap.position.y = 0.6 * s; g.add(cap);
   const sh = blob(2.2 * s, 0.5); sh.position.y = 0.02; g.add(sh);
   return { g, cap };
+}
+
+// ── el zarcillo: látigo-gancho. Objeto (rollo), el tallo que se estira (1 m hacia +y, se escala) y el gancho donde se agarra ──
+export function makeZarcillo() {
+  const g = new THREE.Group(), m = mF({ double: true }), b = new MB();
+  b.push().move(0, -0.45, 0.02).card(0.9, 0.9, [96, 72, 16, 16]).pop(); b.push().move(0, -0.45, -0.02).rotY(Math.PI).card(0.9, 0.9, [96, 72, 16, 16]).pop();
+  g.add(b.mesh(m)); return { g, t: sheetF().t };
+}
+export function makeTendril() {
+  const g = new THREE.Group(), m = mF({ unlit: true });
+  const stem = new MB().lathe([[0.045, 0], [0.045, 1]], 4, [96, 40, 8, 16]).mesh(m); g.add(stem);
+  const tip = new MB().lathe([[0.001, -0.12], [0.11, 0], [0.001, 0.2]], 4, [104, 40, 8, 8]).mesh(m); g.add(tip);
+  return { g, stem, tip };
+}
+export function makeGancho() {
+  const g = new THREE.Group(), m = mF(), md = mF({ double: true, unlit: true });
+  g.add(new MB().lathe([[0.2, 0], [0.13, 0.25], [0.1, 1.15], [0.14, 1.3]], 6, [0, 104, 32, 24]).mesh(m));
+  const ring = new THREE.Group(); ring.position.y = 1.3; g.add(ring);
+  const b = new MB(); for (let i = 0; i < 2; i++) b.push().rotY(i * 1.5708).card(0.62, 0.62, [96, 56, 16, 16]).pop(); ring.add(b.mesh(md));
+  const sh = blob(0.7, 0.5); sh.position.y = 0.02; g.add(sh);
+  return { g, ring, mats: [m, md], t: sheetF().t };
 }

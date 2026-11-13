@@ -17,6 +17,6 @@ export const MODELS = {
   candela: () => F.makeCandela(), bicho: () => F.makeBicho(), pulgon: () => F.makePulgon(), babosa: () => F.makeBabosa(),
   trips: () => F.makeTrips(), tapona: () => F.makeTapona(),
   lombriz: () => Q.makeLombriz({ hat: true }), lombriz2: () => Q.makeLombriz({ scarf: true, s: 0.7, swap: [14, 15] }), caracol: () => Q.makeCaracol(), mohin: () => Q.makeMohin(1), gorgojo: () => Q.makeGorgojo(),
-  cavador: () => Q.makeCavador(), ajobomba: () => Q.makeAjoBomba(), cerbatana: () => Q.makeCerbatana(), pepita: () => Q.makePepita(), llaveraiz: () => Q.makeLlaveRaiz(),
+  cavador: () => Q.makeCavador(), ajobomba: () => Q.makeAjoBomba(), cerbatana: () => Q.makeCerbatana(), pepita: () => Q.makePepita(), llaveraiz: () => Q.makeLlaveRaiz(), zarcillo: () => Q.makeZarcillo(), gancho: () => Q.makeGancho(),
   yema: () => Q.makeYema(), yema2: () => { const y = Q.makeYema(); y.bud.visible = false; y.flower.visible = true; return y; }, mildiu: () => Q.makeMildiu(), raizcol: () => Q.makeRootColumn(6, 0.6), setaluz: () => Q.makeLightShroom(1.4), seta: () => Q.makeSeta(1),
 };

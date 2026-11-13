@@ -6,7 +6,7 @@ import * as A from './art/props.js';
 import * as Q from './art/pulpa.js';
 import { G, flag } from './state.js';
 import { Ent, Chive, Pot, Sign, Chest, Bars, Slab, Plate, Bancal, Lantern } from './ents.js';
-import { Breakable, Yema, Pepita, Seta, Deco } from './ents2.js';
+import { Breakable, Yema, Pepita, Seta, Deco, Gancho } from './ents2.js';
 import { NPC, Bicho, Trips, Mohin, Gorgojo } from './creatures.js';
 import { Cavador } from './boss2.js';
 import * as S from './story2.js';
@@ -76,6 +76,14 @@ export function pulpa() {
   L.add(new Deco(Q.makeRootColumn(20, 1.0), 24, 0, 22, 2.2, 20));
   { const pp = flag('pp_pul3') ? null : L.add(new Pepita(24, 0.4, 18.6, 'pp_pul3', { hidden: !flag('yemaRaigal') })); L.add(new Yema(24, 4.4, 20.8, Math.PI, { wall: true, key: 'yemaRaigal', s: 1.3, onOn: () => pp && pp.appear(24, 3.6, 19.6) })); L.light(24, 4.4, 19.4, 3.2); }
   for (const [x, z, s] of [[34, 30, 1.6], [21, -20, 1.2], [35, -4, 1.4], [28, 9, 1.1]]) L.add(new Deco(Q.makeLightShroom(s).g, x, 0, z, 0.3, 1, { light: 6.5, ly: s, noCam: true }));
+  // ── el rellano del suroeste: una seta sube hasta el cofre del Zarcillo; y ganchos por la caverna ──
+  L.add(new Seta(-27.4, 0, 40.6)); L.add(new Sign(-25.4, 0, 38.4, -0.5, 'C_ZARCILLO'));
+  L.add(new Chest(-35, 3, 41, Math.PI / 2, 'zarcillo', { big: true, key: 'cofreZarcillo' }));
+  L.add(new Deco(Q.makeLightShroom(1.3).g, -36.6, 3, 39, 0.3, 1, { light: 7, ly: 1.3, noCam: true }));
+  L.block(-19.5, 0, 28.5, -16.5, 3.2, 31.5, { top: TI.pulpa, side: TI.pulpaLado, mat: 'grass' });
+  L.add(new Gancho(-18, 3.2, 30)); if (!flag('pp_pul5')) L.add(new Pepita(-18.8, 3.5, 30.8, 'pp_pul5'));
+  L.add(new Gancho(34, 2.2, 42.4)); if (!flag('pp_pul4')) L.add(new Pepita(36.4, 2.5, 42, 'pp_pul4'));
+  L.add(new Gancho(-26.6, 2.4, 10));
   // columnas de raíz que sujetan el techo
   for (const [x, z, s] of [[-20, -27, 1.1], [18, -27, 1.2], [-27, 28, 1.3], [29, 34, 1.0], [-17, -11, 0.8], [-10, 34, 0.9]]) L.add(new Deco(Q.makeRootColumn(22, s), x, 0, z, s * 2.3, 22));
   // ── el paso a la Raicera (norte): moho cerrando el desfiladero ──

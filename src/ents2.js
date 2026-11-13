@@ -210,3 +210,108 @@ export class Deco extends Ent {
   onAdd(L) { if (this.w) L.addSolid({ x0: this.pos.x - this.w / 2, x1: this.pos.x + this.w / 2, z0: this.pos.z - this.w / 2, z1: this.pos.z + this.w / 2, y0: this.pos.y, y1: this.pos.y + this.h, ent: this, noClimb: true, mat: 'stone', noCam: this.o.noCam }); if (this.o.light) L.light(this.pos.x, this.pos.y + (this.o.ly || 1), this.pos.z, this.o.light, { flick: 0.25 }); }
   update(dt) { if (this.o.tick) this.o.tick(this, dt); }
 }
+
+// ───────── el zarcillo: látigo que se agarra a los ganchos y tira de Ceba; trae botín, tumba gorgojos y da un tirón a las plagas ─────────
+export class Gancho extends Ent {
+  constructor(x, y, z, o = {}) { super(x, y, z); this.m = Q.makeGancho(); this.obj = this.m.g; this.hook = true; this.o = o; this.hh = 1.3; this.k = 0; this.sync(); }
+  get aim() { return [this.pos.x, this.pos.y + 1.3, this.pos.z]; }
+  onAdd(L) { L.addSolid({ x0: this.pos.x - 0.14, x1: this.pos.x + 0.14, z0: this.pos.z - 0.14, z1: this.pos.z + 0.14, y0: this.pos.y, y1: this.pos.y + 1.2, ent: this, noClimb: true, noCam: true, seeThru: true }); L.light(this.pos.x, this.pos.y + 1.5, this.pos.z, 2.6, { flick: 0.2 }); }
+  update(dt) {
+    this.t += dt; const has = G.save.items.zarcillo, p = G.player;
+    // si Ceba lo tiene a tiro, la argolla se anima para que se vea que se puede
+    const inR = has && this.dist() < 12 && !p.busy && G.whipTarget(p, true) === this;
+    this.k = lerp(this.k, inR ? 1 : 0, Math.min(1, 8 * dt));
+    this.m.ring.rotation.y = this.t * (0.8 + this.k * 4); this.m.ring.scale.setScalar(1 + this.k * (0.25 + Math.sin(this.t * 10) * 0.08));
+    this.m.mats[1].uniforms.uFlash.value = this.k * (0.35 + Math.sin(this.t * 10) * 0.2); this.m.mats[1].uniforms.uFlashC.value = 7;
+    if (inR && rnd() < 0.25) fx.one(P.sqY, this.pos.x + (rnd() - 0.5) * 0.5, this.pos.y + 1.3 + (rnd() - 0.5) * 0.5, this.pos.z + (rnd() - 0.5) * 0.5, { vy: 0.6, g: -0.2, life: 0.4, size: 0.12 });
+    if (!has && this.near(3.2)) G.hintOnce('gancho', 'H_GANCHO');
+  }
+}
+const WHIP_HOOK = 10.5, WHIP_HIT = 6;
+const whipOrigin = p => [p.pos.x + Math.sin(p.yaw) * 0.45, p.pos.y + p.h * 0.6, p.pos.z + Math.cos(p.yaw) * 0.45];
+// ¿hay algo macizo entre a y b? (se salta lo que deja ver)
+const blocked = (L, a, b, skip, tail = 0) => {
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]), n = Math.ceil(len / 0.3), m = Math.floor(n * Math.max(0.3, 1 - tail / (len || 1)));
+  for (let i = 1; i < m; i++) { const k = i / n, x = lerp(a[0], b[0], k), y = lerp(a[1], b[1], k), z = lerp(a[2], b[2], k); for (const s of L.solids) { if (s.off || s.seeThru || s.ent === skip) continue; if (x > s.x0 && x < s.x1 && z > s.z0 && z < s.z1 && y > s.y0 && y < L.topOf(s, x, z)) return [x, y, z]; } }
+  return null;
+};
+// a qué se agarraría el zarcillo ahora mismo: gancho, plaga, botín o tinaja
+G.whipTarget = (p, hooksOnly) => {
+  const L = G.level, o = whipOrigin(p); let best = null, bs = 1e9;
+  for (const e of L.ents) {
+    if (e.dead) continue;
+    const kind = e.hook ? 'hook' : hooksOnly ? null : (e.enemy && e.hit) ? 'foe' : (e.take && e.wants) ? 'pick' : e.fragile ? 'pot' : null;
+    if (!kind) continue;
+    const a = e.aim || [e.pos.x, e.pos.y + (e.hh || 0.3), e.pos.z], dx = a[0] - o[0], dz = a[2] - o[2], d = Math.hypot(dx, dz), dy = a[1] - o[1];
+    if (d < 0.5 || d > (kind === 'hook' ? WHIP_HOOK : WHIP_HIT) || dy > 7.5 || dy < -4) continue;
+    let da = Math.atan2(dx, dz) - p.yaw; da = Math.abs(Math.atan2(Math.sin(da), Math.cos(da)));
+    const locked = G.target === e;
+    if (!locked && da > (kind === 'hook' ? 0.75 : 0.6)) continue;
+    if (blocked(L, o, a, e, kind === 'hook' ? 2.2 : 0)) continue;
+    const s = da * 8 + d * 0.15 - (kind === 'hook' ? 4 : kind === 'foe' ? 1.5 : 0) - (locked ? 20 : 0);
+    if (s < bs) { bs = s; best = e; best._wk = kind; }
+  }
+  return best;
+};
+const _up = new THREE.Vector3(0, 1, 0), _w = new THREE.Vector3();
+export class Whip extends Ent {
+  constructor(p) {
+    super(p.pos.x, p.pos.y, p.pos.z); this.p = p; this.m = Q.makeTendril(); this.obj = this.m.g; this.ph = 'out'; this.k = 0;
+    const L = G.level, o = whipOrigin(p), e = G.whipTarget(p); this.e = e; this.kind = e ? e._wk : 'miss';
+    if (e) { this.end = (e.aim || [e.pos.x, e.pos.y + (e.hh || 0.3), e.pos.z]).slice(); p.yaw = Math.atan2(this.end[0] - o[0], this.end[2] - o[2]); }
+    else { const far = [o[0] + Math.sin(p.yaw) * 5, o[1] + 0.1, o[2] + Math.cos(p.yaw) * 5], hit = blocked(L, o, far); this.end = hit || far; this.wall = !!hit; }
+    this.len = Math.hypot(this.end[0] - o[0], this.end[1] - o[1], this.end[2] - o[2]); this.tip = o.slice(); this.draw();
+  }
+  draw() {
+    const o = whipOrigin(this.p), t = this.tip; _w.set(t[0] - o[0], t[1] - o[1], t[2] - o[2]); const l = _w.length() || 0.01;
+    this.obj.position.set(o[0], o[1], o[2]); this.obj.quaternion.setFromUnitVectors(_up, _w.multiplyScalar(1 / l));
+    this.m.stem.scale.set(1, l, 1); this.m.tip.position.y = l; this.m.tip.rotation.y += 0.5;
+  }
+  done() { if (this.p.state === 'whip') this.p.set('free'); this.p.whipCd = 0.18; this.kill(); }
+  update(dt) {
+    const p = this.p, L = this.level, o = whipOrigin(p), e = this.e;
+    if (p.state !== 'whip' && p.state !== 'hook') { this.kill(); return; }
+    if (this.ph === 'out') {
+      this.k = Math.min(1, this.k + dt * 34 / Math.max(2, this.len)); const q = ease.out3 ? ease.out3(this.k) : this.k;
+      for (let i = 0; i < 3; i++) this.tip[i] = lerp(o[i], this.end[i], q);
+      // serpentea un poco mientras sale
+      this.tip[1] += Math.sin(this.k * 9) * 0.18 * (1 - this.k);
+      if (this.k >= 1) this.arrive();
+    } else if (this.ph === 'hold') {
+      this.k -= dt; for (let i = 0; i < 3; i++) this.tip[i] = this.end[i]; if (this.k <= 0) { if (this.kind === 'hook') this.startPull(); else { this.ph = 'back'; this.k = 1; } }
+    } else if (this.ph === 'pull') {
+      // Ceba vuela hacia el gancho: sube deprisa y entra por encima del borde
+      const f = this.f; f.t += dt / f.T; const k = clamp(f.t), ek = k * k * (3 - 2 * k);
+      p.pos.x = lerp(f.x0, f.x1, ek); p.pos.z = lerp(f.z0, f.z1, ek); p.pos.y = lerp(f.y0, f.y1 + 0.6, Math.min(1, ek * 1.6)) - (ek > 0.8 ? (ek - 0.8) / 0.2 * 0.45 : 0);
+      p.vel.set(0, 0, 0); p.rollA += dt * 14; for (let i = 0; i < 3; i++) this.tip[i] = this.end[i];
+      if (rnd() < 0.6) fx.one(P.sqG, p.pos.x, p.pos.y + 0.4, p.pos.z, { life: 0.3, size: 0.16 });
+      if (k >= 1) { p.set('free'); p.vel.set(Math.sin(p.yaw) * 1.5, 2.5, Math.cos(p.yaw) * 1.5); p.onGround = false; p.sqV = 6; p.inv = Math.max(p.inv, 0.2); p.whipCd = 0.2; audio.sfx('land', { pitch: 1.3, vol: 0.6 }); this.kill(); return; }
+    } else {
+      this.k -= dt * 5.5; const q = Math.max(0, this.k);
+      for (let i = 0; i < 3; i++) this.tip[i] = lerp(o[i], this.end[i], q);
+      if (this.carry && !this.carry.dead) { this.carry.pos.set(this.tip[0], this.tip[1] - 0.2, this.tip[2]); this.carry.rest = true; this.carry.hover = this.carry.pos.y; this.carry.grace = 0; if (this.carry.life < 6) this.carry.life = 6; }
+      if (this.k <= 0) { this.done(); return; }
+    }
+    this.draw();
+  }
+  arrive() {
+    const e = this.e, p = this.p, [x, y, z] = this.end;
+    if (this.kind === 'hook') { this.ph = 'hold'; this.k = 0.09; audio.sfx('keyGet', { pitch: 1.5, vol: 0.7 }); audio.sfx('seedHit', { pitch: 0.7 }); fx.sparks(x, y, z, 5); fx.ring(x, y, z, { r0: 0.1, r1: 0.9, t: 0.25, c: 10, th: 0.2, vert: true }); fx.stop(0.04); return; }
+    this.ph = 'hold'; this.k = 0.05;
+    if (this.kind === 'foe' && e && !e.dead) {
+      const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz) || 1;
+      const r = e.hit({ dmg: 1, dx: -dx / d, dz: -dz / d, whip: true, from: p });
+      if (r === 'bounce') { audio.sfx('bounce'); fx.sparks(x, y, z, 4); } else { fx.stop(0.05); fx.shake(0.08, 0.15); fx.burst(P.star, x, y, z, 4, { speed: 2, up: 2, g: 4, life: 0.3, size: 0.34 }); if (e.vel && !e.dead && (e.r || 0.4) < 1.2) { e.vel.x = -dx / d * Math.min(9, d * 2.4); e.vel.z = -dz / d * Math.min(9, d * 2.4); e.vel.y = Math.max(e.vel.y || 0, 4); e.onGround = false; } }
+    } else if (this.kind === 'pick' && e && !e.dead) { this.carry = e; audio.sfx('blip', { pitch: 1.5, vol: 0.6 }); }
+    else if (this.kind === 'pot' && e && !e.dead) { e.smash(); }
+    else { if (this.wall) { fx.sparks(x, y, z, 3); audio.sfx('bounce', { vol: 0.5, pitch: 1.5 }); } // el latigazo siega lo que pille en la punta
+      for (const c of this.level.ents) if (c.cut && !c.dead && Math.hypot(c.pos.x - x, c.pos.z - z) < 0.9 && Math.abs(c.pos.y - y) < 1.5) c.cut(p); }
+  }
+  startPull() {
+    const p = this.p, e = this.e; let dx = p.pos.x - e.pos.x, dz = p.pos.z - e.pos.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
+    const back = Math.min(0.9, d * 0.5), x1 = e.pos.x + dx * back, z1 = e.pos.z + dz * back;
+    this.f = { x0: p.pos.x, y0: p.pos.y, z0: p.pos.z, x1, y1: e.pos.y, z1, t: 0, T: clamp(Math.hypot(d, e.pos.y - p.pos.y) / 17, 0.22, 0.7) };
+    this.ph = 'pull'; p.set('hook'); p.yaw = Math.atan2(-dx, -dz); p.face('wow', 0.8); audio.sfx('swing3', { pitch: 1.3 }); audio.sfx('jump', { pitch: 1.2 }); G.hintOnce('zarcilloOk', 'H_ZARCILLO_OK');
+  }
+}
+G.whip = p => { const w = new Whip(p); G.level.add(w); audio.sfx('swing2', { pitch: 1.7 }); audio.sfx('grass', { pitch: 1.5, vol: 0.5 }); return w; };

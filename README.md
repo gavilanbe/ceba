@@ -15,7 +15,9 @@ En Bulbo no llueve: toda el agua que hay la ha llorado alguien. Por eso las cebo
 - **Bancales**: plántate para recuperar capas y guardar.
 - **Capítulo I**: Villa Ristra, la Hoja del Bancal Viejo, la Cisterna y Tapona, la babosa que lleva el tapón del desagüe de sombrero.
 - **Capítulo II**: el Ajo Bravo revienta el sello de moho y se baja a la Pulpa: el Raigal de las lombrices, las setas trampolín, la Raicera, la Cerbatana, Cavador el alacrán cebollero… y Don Mildiu.
-- **Pepitas de oro**: ocho escondidas por el mundo; la Yaya Morada cambia cuatro por un anillo de capa.
+- **Técnicas de la Hoja**: mantén el tajo y suelta para el remolino; en el aire, el tajo cae en picado.
+- **Zarcillo**: látigo-gancho escondido en el Raigal; se agarra a los ganchos y te lleva volando, trae botín lejano y pone a los gorgojos patas arriba.
+- **Pepitas de oro**: doce escondidas por el mundo; la Yaya Morada cambia cuatro por un anillo de capa.
 
 ## Controles
 
@@ -23,7 +25,7 @@ En Bulbo no llueve: toda el agua que hay la ha llorado alguien. Por eso las cebo
 |---|---|
 | WASD | moverse |
 | Espacio | acción / rodar |
-| J | la Hoja |
+| J | la Hoja (mantener y soltar: remolino; en el aire: picado) |
 | Mayús | fijar objetivo |
 | U, I, O | objetos |
 | Flechas, ratón (clic) o Q/E | mover la cámara |
