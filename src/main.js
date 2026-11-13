@@ -103,6 +103,8 @@ function update(dt) {
     if (input.pressed.start && G.lock <= 0 && player.state !== 'dead' && !G.cine) { input.pressed.start = false; Menu.open(); }
   }
   tickScripts(dt);
+  // la percusión del tema entra cuando Ceba se mueve y se retira cuando se para a hablar o a mirar
+  { const p = G.player; if (p) { const mv = Math.hypot(p.vel.x, p.vel.z) > 1.2 && G.lock <= 0 && G.mode === 'play'; G.percT = mv ? Math.min(1.5, (G.percT || 0) + dt * 2) : Math.max(0, (G.percT || 0) - dt * 0.35); const k = G.percT > 0.25 ? 1 : 0.12; if (k !== G.percK) { G.percK = k; audio.perc(k); } } }
   if (G.mode === 'play' && G.level) {
     let w = dt; if (fx.stopT > 0) { fx.stopT -= dt; w = 0; }
     G.t += dt; U.uTime.value = G.t; G.save.time += dt;

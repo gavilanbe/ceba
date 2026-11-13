@@ -296,13 +296,13 @@ export class Whip extends Ent {
   }
   arrive() {
     const e = this.e, p = this.p, [x, y, z] = this.end;
-    if (this.kind === 'hook') { this.ph = 'hold'; this.k = 0.09; audio.sfx('keyGet', { pitch: 1.5, vol: 0.7 }); audio.sfx('seedHit', { pitch: 0.7 }); fx.sparks(x, y, z, 5); fx.ring(x, y, z, { r0: 0.1, r1: 0.9, t: 0.25, c: 10, th: 0.2, vert: true }); fx.stop(0.04); return; }
+    if (this.kind === 'hook') { this.ph = 'hold'; this.k = 0.09; audio.sfx('whipLatch'); fx.sparks(x, y, z, 5); fx.ring(x, y, z, { r0: 0.1, r1: 0.9, t: 0.25, c: 10, th: 0.2, vert: true }); fx.stop(0.04); return; }
     this.ph = 'hold'; this.k = 0.05;
     if (this.kind === 'foe' && e && !e.dead) {
       const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz) || 1;
       const r = e.hit({ dmg: 1, dx: -dx / d, dz: -dz / d, whip: true, from: p });
-      if (r === 'bounce') { audio.sfx('bounce'); fx.sparks(x, y, z, 4); } else { fx.stop(0.05); fx.shake(0.08, 0.15); fx.burst(P.star, x, y, z, 4, { speed: 2, up: 2, g: 4, life: 0.3, size: 0.34 }); if (e.vel && !e.dead && (e.r || 0.4) < 1.2) { e.vel.x = -dx / d * Math.min(9, d * 2.4); e.vel.z = -dz / d * Math.min(9, d * 2.4); e.vel.y = Math.max(e.vel.y || 0, 4); e.onGround = false; } }
-    } else if (this.kind === 'pick' && e && !e.dead) { this.carry = e; audio.sfx('blip', { pitch: 1.5, vol: 0.6 }); }
+      if (r === 'bounce') { audio.sfx('bounce'); fx.sparks(x, y, z, 4); } else { audio.sfx('whipHit'); fx.stop(0.05); fx.shake(0.08, 0.15); fx.burst(P.star, x, y, z, 4, { speed: 2, up: 2, g: 4, life: 0.3, size: 0.34 }); if (e.vel && !e.dead && (e.r || 0.4) < 1.2) { e.vel.x = -dx / d * Math.min(9, d * 2.4); e.vel.z = -dz / d * Math.min(9, d * 2.4); e.vel.y = Math.max(e.vel.y || 0, 4); e.onGround = false; } }
+    } else if (this.kind === 'pick' && e && !e.dead) { this.carry = e; audio.sfx('whipHit', { pitch: 1.4, vol: 0.6 }); }
     else if (this.kind === 'pot' && e && !e.dead) { e.smash(); }
     else { if (this.wall) { fx.sparks(x, y, z, 3); audio.sfx('bounce', { vol: 0.5, pitch: 1.5 }); } // el latigazo siega lo que pille en la punta
       for (const c of this.level.ents) if (c.cut && !c.dead && Math.hypot(c.pos.x - x, c.pos.z - z) < 0.9 && Math.abs(c.pos.y - y) < 1.5) c.cut(p); }
@@ -311,7 +311,7 @@ export class Whip extends Ent {
     const p = this.p, e = this.e; let dx = p.pos.x - e.pos.x, dz = p.pos.z - e.pos.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
     const back = Math.min(0.9, d * 0.5), x1 = e.pos.x + dx * back, z1 = e.pos.z + dz * back;
     this.f = { x0: p.pos.x, y0: p.pos.y, z0: p.pos.z, x1, y1: e.pos.y, z1, t: 0, T: clamp(Math.hypot(d, e.pos.y - p.pos.y) / 17, 0.22, 0.7) };
-    this.ph = 'pull'; p.set('hook'); p.yaw = Math.atan2(-dx, -dz); p.face('wow', 0.8); audio.sfx('swing3', { pitch: 1.3 }); audio.sfx('jump', { pitch: 1.2 }); G.hintOnce('zarcilloOk', 'H_ZARCILLO_OK');
+    this.ph = 'pull'; p.set('hook'); p.yaw = Math.atan2(-dx, -dz); p.face('wow', 0.8); audio.sfx('whipPull'); G.hintOnce('zarcilloOk', 'H_ZARCILLO_OK');
   }
 }
-G.whip = p => { const w = new Whip(p); G.level.add(w); audio.sfx('swing2', { pitch: 1.7 }); audio.sfx('grass', { pitch: 1.5, vol: 0.5 }); return w; };
+G.whip = p => { const w = new Whip(p); G.level.add(w); audio.sfx('whipOut'); return w; };

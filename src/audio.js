@@ -669,6 +669,47 @@ function startMusic(name, fade) {
   cur.g.gain.linearRampToValueAtTime(1, now + Math.max(0.05, fade * 0.6));
 }
 
+// ───────────────────────── música sintetizada con instrumentos (hifi) ─────────────────────────
+// Un worker compone y sintetiza las piezas nuevas; cuando llegan, sustituyen a la versión de cuatro canales.
+// Cada pieza son dos pistas en bucle: el cuerpo (estéreo) y la percusión (aparte, para subirla y bajarla según se juega).
+const HIFI = {}, HSFX = {}, FALLBACK = { spinReady: 'blip', spin: 'swing3', plunge: 'swing2', slam: 'land', whipOut: 'swing2', whipLatch: 'keyGet', whipPull: 'swing3', whipHit: 'hit' };
+let hcur = null, worker = null, percWant = 1, oldMusic = false;
+function hifiBoot() {
+  if (worker || offline || typeof Worker === 'undefined') return;
+  try { oldMusic = /[?&]musica=vieja/.test(location.search); } catch (e) { }
+  try {
+    worker = new Worker(new URL('./hifi-worker.js', import.meta.url), { type: 'module' });
+    worker.onmessage = e => {
+      const d = e.data; if (!ctx) return;
+      try {
+        if (d.type === 'sfx') for (const k in d.sfx) { const b = ctx.createBuffer(1, d.sfx[k].length, d.sr); b.copyToChannel(d.sfx[k], 0); HSFX[k] = b; }
+        else if (d.type === 'track') {
+          const body = ctx.createBuffer(2, d.body[0].length, d.sr); body.copyToChannel(d.body[0], 0); body.copyToChannel(d.body[1], 1);
+          const perc = ctx.createBuffer(1, d.perc.length, d.sr); perc.copyToChannel(d.perc, 0);
+          HIFI[d.name] = { body, perc };
+          if (wanted === d.name && !oldMusic) { startMusic(null, 1.2); hifiStart(d.name, 1.2); }
+        } else if (d.type === 'error') console.warn('hifi:', d.msg);
+      } catch (err) { console.warn('hifi:', err); }
+    };
+    worker.onerror = () => { };
+    worker.postMessage({ sr: ctx.sampleRate, msr: 32000 });
+  } catch (e) { worker = null; }
+}
+function hifiStop(fade) {
+  if (!hcur) return; const h = hcur, now = ctx.currentTime; hcur = null;
+  h.g.gain.cancelScheduledValues(now); h.g.gain.setValueAtTime(h.g.gain.value, now); h.g.gain.linearRampToValueAtTime(0, now + fade);
+  for (const src of h.src) { try { src.stop(now + fade + 0.1); } catch (e) { } }
+}
+function hifiStart(name, fade) {
+  hifiStop(fade); const H = HIFI[name]; if (!H) return false;
+  const now = ctx.currentTime, t0 = now + Math.min(fade * 0.5, 0.4) + 0.06;
+  const g = ctx.createGain(); g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(1.25, t0 + Math.max(0.05, fade * 0.6)); g.connect(musicIn);
+  const pg = ctx.createGain(); pg.gain.value = percWant; pg.connect(g);
+  const mk = (buf, dest) => { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.connect(dest); s.start(t0); return s; };
+  hcur = { name, g, pg, src: [mk(H.body, g), mk(H.perc, pg)] };
+  return true;
+}
+
 // ───────────────────────── efectos ─────────────────────────
 // Cada efecto recibe un pincel `s`: s.o (oscilador con barrido), s.c (curva de
 // frecuencias), s.n (ruido filtrado con barrido). Tiempos relativos al disparo.
@@ -858,13 +899,21 @@ export const audio = {
         if (timer) clearInterval(timer);
         timer = setInterval(tick, 60);
       }
+      if (!offline) hifiBoot();
       if (wanted) { const w = wanted; startMusic(w, 0.05); }
       return true;
     } catch (e) { ctx = null; return false; }
   },
 
   sfx(name, opts) {
-    const fn = SFX[name];
+    if (ctx && HSFX[name]) {
+      try {
+        const o = opts || {}, src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = HSFX[name]; src.playbackRate.value = o.pitch || 1; g.gain.value = (o.vol ?? 1) * 0.55;
+        src.connect(g); g.connect(sfxBus); src.start(ctx.currentTime + 0.004);
+      } catch (e) { }
+      return;
+    }
+    const fn = SFX[name] || SFX[FALLBACK[name]];
     if (!ctx || !fn) return;
     try {
       const o = opts || {}, t = ctx.currentTime + 0.004;
@@ -879,10 +928,14 @@ export const audio = {
   music(name, opts) {
     name = name || null;
     if (name && !TRACKS[name]) return;
-    if (name === wanted && (!ctx || (cur && cur.name === name))) return;
+    if (name === wanted && (!ctx || (cur && cur.name === name) || (hcur && hcur.name === name))) return;
     wanted = name;
     if (!ctx) return;
-    try { startMusic(name, (opts && opts.fade) ?? 0.8); } catch (e) { /* idem */ }
+    const fade = (opts && opts.fade) ?? 0.8;
+    try {
+      if (name && HIFI[name] && !oldMusic) { startMusic(null, fade); hifiStart(name, fade); }
+      else { hifiStop(fade); startMusic(name, fade); }
+    } catch (e) { /* idem */ }
   },
 
   jingle(name) {
@@ -906,6 +959,9 @@ export const audio = {
     return dur;
   },
 
+  // la percusión acompaña al movimiento: 0 = callada, 1 = entera
+  perc(k) { percWant = k; if (ctx && hcur) hcur.pg.gain.setTargetAtTime(k, ctx.currentTime, 0.5); },
+  get hifi() { return { tracks: Object.keys(HIFI), sfx: Object.keys(HSFX), playing: hcur && hcur.name }; },
   duck(on) {
     if (!ctx) return;
     const now = ctx.currentTime;

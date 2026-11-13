@@ -112,7 +112,7 @@ export function villa() {
   const sun = A.makeSkyCard([0, 40, 32, 32], 26, 26); sun.position.set(70, 62, -120); sun.lookAt(0, 10, 0); L.group.add(sun);
   const strip = A.makeSkyCard([32, 40, 64, 24], 90, 30); strip.position.set(-80, 70, -140); strip.rotation.set(0.2, 0.5, -0.5); L.group.add(strip); L.strip = strip;
   L.tick = (dt) => { strip.rotation.z = -0.5 + Math.sin(G.t * 0.3) * 0.05; if (rnd() < 0.08) { const p = G.player.pos; fx.one(P.flake, p.x + (rnd() - 0.5) * 30, p.y + 8 + rnd() * 4, p.z + (rnd() - 0.5) * 30, { vy: -0.7, vx: 0.6, g: 0, life: 9, size: 0.22, wob: 0.8 }); } };
-  L.resumeMusic = () => audio.music(done ? 'calm' : (G.player.pos.x > 19 ? 'hill' : 'village'), { fade: 0.8 });
+  L.resumeMusic = () => audio.music(done || G.player.pos.x <= 19 ? 'village' : 'hill', { fade: 0.8 });
   L.zone(19, -19, 34, 10, () => { if (!flag('jefe')) audio.music('hill', { fade: 1.2 }); }, { once: false, onExit: () => { if (!flag('jefe')) audio.music('village', { fade: 1.2 }); } });
   L.onEnter = S.villaEnter;
   return L.finish();

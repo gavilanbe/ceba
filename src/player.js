@@ -168,7 +168,7 @@ export class Player {
             if (this.swim || !m.hasHoja) this.chgOn = false;
             else if (input.down.b) {
               const was = this.chg; this.chg += dt; m.draw(true); this.drawn = 1;
-              if (was < 0.5 && this.chg >= 0.5) { audio.sfx('blip', { pitch: 1.9 }); audio.sfx('ring', { pitch: 1.6, vol: 0.5 }); m.flash(0.7); fx.ring(p.x, this.groundY + 0.05, p.z, { r0: 1.6, r1: 0.3, t: 0.25, c: 11, th: 0.2 }); this.sqV = 4; }
+              if (was < 0.5 && this.chg >= 0.5) { audio.sfx('spinReady'); m.flash(0.7); fx.ring(p.x, this.groundY + 0.05, p.z, { r0: 1.6, r1: 0.3, t: 0.25, c: 11, th: 0.2 }); this.sqV = 4; }
               if (rnd() < (this.chg >= 0.5 ? 0.7 : 0.25)) { const a = rnd() * 6.283, rr = this.chg >= 0.5 ? 0.5 : 1.1; fx.one(this.chg >= 0.5 ? P.star : P.sqG, p.x + Math.cos(a) * rr, p.y + 0.3 + rnd() * 0.7, p.z + Math.sin(a) * rr, { vx: -Math.cos(a) * 2, vz: -Math.sin(a) * 2, vy: 0.6, life: 0.3, size: this.chg >= 0.5 ? 0.3 : 0.14 }); }
             } else { this.chgOn = false; if (this.chg >= 0.5 && this.onGround) this.startSpin(); }
           }
@@ -296,11 +296,11 @@ export class Player {
   }
   startSpin() {
     this.set('spin'); this.hitDone = false; this.m.draw(true); this.drawn = 3; this.face('brave', 0.6); this.trail.reset(); this.sqV = 6;
-    audio.sfx('swing3', { pitch: 0.75 }); audio.sfx('swing1', { pitch: 1.3 });
+    audio.sfx('spin');
   }
   startPlunge() {
     this.set('plunge'); this.chgOn = false; this.m.draw(true); this.drawn = 3; this.face('brave', 0.8); this.trail.reset();
-    this.vel.y = Math.max(this.vel.y * 0.3, 4.5); this.sqV = 6; audio.sfx('swing2', { pitch: 0.8 });
+    this.vel.y = Math.max(this.vel.y * 0.3, 4.5); this.sqV = 6; audio.sfx('plunge');
   }
   // golpe en redondo alrededor de (x, z): remolino y picado
   areaHit(x, z, r, dmg, o = {}) {
@@ -324,7 +324,7 @@ export class Player {
   slam() {
     const p = this.pos, r = 2.1 * (0.6 + 0.4 * this.scale), any = this.areaHit(p.x, p.z, r, 2, { slam: true });
     this.set('free'); this.drawn = 1.6; this.trail.reset(); this.sqV = -11; this.rollCd = 0.15;
-    audio.sfx('land'); audio.sfx('bounce', { pitch: 0.55 }); fx.shake(0.3, 0.3); fx.stop(any ? 0.1 : 0.04);
+    audio.sfx('slam'); fx.shake(0.3, 0.3); fx.stop(any ? 0.1 : 0.04);
     fx.ring(p.x, this.groundY + 0.05, p.z, { r0: 0.3, r1: r + 0.4, t: 0.32, c: 7, th: 0.5 }); fx.ring(p.x, this.groundY + 0.05, p.z, { r0: 0.2, r1: r, t: 0.45, c: 10, th: 0.22 });
     fx.dust(p.x, this.groundY, p.z, 9, { dark: G.level.dark > 0.3, speed: 2.4 }); fx.burst(P.star, p.x, p.y + 0.3, p.z, 6, { speed: 3.4, up: 3, g: 8, life: 0.4, size: 0.36 });
     for (const e of G.level.ents) if (e.onBonkNear && Math.hypot(e.pos.x - p.x, e.pos.z - p.z) < 2.6) e.onBonkNear(this);
