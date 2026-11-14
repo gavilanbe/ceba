@@ -97,6 +97,7 @@ G.onDeath = () => run(function* () {
 let acc = 0;
 function update(dt) {
   G.dt = dt; input.poll();
+  if (G.skip) skipInput(dt);
   if (G.mode === 'title') Title.update(dt);
   else if (G.mode === 'menu') Menu.update(dt);
   else if (G.mode === 'play') {
@@ -159,8 +160,55 @@ function frame(dt) { update(dt); render(dt); }
 // ───────── arranque ─────────
 G.startNew = function* () {
   G.save = newSave(); player.maxLayers = 3; player.crack = false; player.setLayers(3, true); player.m.setHoja(false);
-  yield* Title.intro();
+  yield* skippable(Title.intro(), skipIntro);
 };
+
+// ───────── saltar la intro: mantener START ─────────
+// El guion de la intro (leyenda, planos de la villa y el despertar) corre dentro de este envoltorio.
+// Si se mantiene START, se abandona tal cual y skipIntro deja la partida igual que al acabar la escena.
+const SKIP_HOLD = 0.85;
+function* skippable(gen, onSkip) {
+  const sk = G.skip = { hold: 0, show: 0, armed: false, fire: false, t: 0 };
+  let dt = 0;
+  for (;;) {
+    if (sk.fire) { yield* onSkip(); break; }
+    if (gen.next(dt).done) break;
+    dt = yield;
+  }
+  if (G.skip === sk) G.skip = null;
+}
+function skipInput(dt) {
+  const sk = G.skip; if (!sk || sk.fire) return;
+  // en cuanto Ceba ya se mueve, la intro ha acabado aunque al guion le quede el aviso de cámara
+  if (G.mode === 'play' && flag('intro') && !G.cine && G.lock <= 0) { G.skip = null; return; }
+  sk.t += dt;
+  // el Intro que eligió «Partida nueva» no cuenta: hay que soltarlo antes
+  if (!input.down.start) sk.armed = true;
+  if (input.any) sk.show = 3;
+  if (sk.armed && input.down.start) { sk.show = 3; sk.hold += dt; if (sk.hold >= SKIP_HOLD) { sk.fire = true; sk.hold = SKIP_HOLD; audio.sfx('select'); } }
+  else sk.hold = Math.max(0, sk.hold - dt * 2.5);
+  sk.show = Math.max(0, sk.show - dt);
+  input.pressed.start = false;
+}
+function* skipIntro() {
+  // corta lo que hubiera en pantalla y funde a negro desde donde esté
+  UI.S.dlg = null; UI.S.hint = null; G.talking = false; Title.S.card = null;
+  yield* G.fade(1, 0.3, 0);
+  G.skip = null;
+  // el estado en que acaba wakeUp (story.js): despierta en la cama, Candela al lado, cámara libre
+  Title.leave(); UI.over = null; UI.top = null; UI.S.iris = null;
+  G.mode = 'play'; G.cine = false; G.lock = 1; G.speaker = null; G.target = null;
+  flag('intro', 1);
+  const L = G.load('villa', 'cama');
+  player.sink = 0; player.vel.set(0, 0, 0); player.set('free');
+  cam.release(0); cam.reset(0.9);
+  L.resumeMusic(); writeSave();
+  input.clear();
+  yield* G.fade(0, 0.6, 0);
+  G.lock = 0;
+  G.areaTitle(L.title, L.sub);
+  yield* wait(4.2); G.hintOnce('camara', 'H_CAMARA');
+}
 G.startContinue = function* () {
   const s = loadSave(); G.save = s; if (!LEVELS[s.spawn.level]) s.spawn = { level: 'villa', at: 'cama' }; player.maxLayers = s.maxLayers; player.crack = !!s.crack; player.setLayers(clamp(s.layers || s.maxLayers, 1, s.maxLayers), true);
   yield* G.fade(1, 0.5, 0); Title.leave(); G.fade_ = 0;

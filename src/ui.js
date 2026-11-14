@@ -421,5 +421,34 @@ export function drawUI(dt) {
   }
   if (S.fade > 0.01) { const lv = S.fade * 17; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (BAYER[(y & 3) * 4 + (x & 3)] < lv - 0.5) t.d[y * W + x] = S.fadeC; }
   if (UI.top) UI.top(t, dt);
+  if (G.skip) skipBadge(t, G.skip, dt);
+}
+
+// «mantén Intro para saltar»: entra al tocar cualquier tecla durante la intro y se va sola.
+// La cebollita se rellena capa a capa, de fuera adentro, mientras se mantiene START.
+const SK = { k: 0 };
+function skipBadge(t, sk, dt) {
+  const want = sk.show > 0 || sk.hold > 0 ? 1 : 0;
+  SK.k = clamp(SK.k + (want ? 1 : -1) * dt * 5); if (SK.k <= 0) return;
+  const key = input.usedPad ? 'Start' : 'Intro', lb1 = 'Mantén ', lb2 = ' para saltar';
+  const tw = textW(lb1) + textW(key) + 8 + textW(lb2), wd = tw + 30, hh = 17;
+  const x = W - 4 - Math.round(wd * ease.out3(SK.k)) + Math.round((1 - SK.k) * 6), y = 3;
+  const hk = clamp(sk.hold / 0.85);
+  t.rrect(x - 1, y - 1, wd + 2, hh + 2, 0, 3); t.rrect(x, y, wd, hh, 1, 3); t.rect(x + 3, y + 1, wd - 6, 1, 5); t.rect(x + 2, y + hh - 2, wd - 4, 1, 0);
+  // la cebollita: tres capas que se llenan en orden
+  const cx = x + 10, cy = y + 8, cols = [9, 14, 7];
+  t.disc(cx, cy, 7, 0);
+  for (let i = 0; i < 3; i++) {
+    const r1 = 7 - i * 2, r0 = r1 - 1.5, k = clamp(hk * 3 - i);
+    t.arc(cx, cy, r0, r1, 0, Math.PI * 2, 2);
+    if (k > 0) t.arc(cx, cy, r0, r1, 0, k * Math.PI * 2, sk.fire && Math.floor(G.t * 20) % 2 ? 7 : cols[i]);
+  }
+  t.disc(cx, cy, 1, hk >= 1 ? 7 : 11);
+  // texto, con la tecla en su chapa
+  let tx = x + 21; const ty = y + 5, on = hk > 0;
+  t.text(lb1, tx, ty, on ? 7 : 6); tx += textW(lb1);
+  const kw = textW(key) + 6, press = input.down.start ? 1 : 0;
+  t.rrect(tx, ty - 2 + press, kw, 11, 0, 2); t.rrect(tx, ty - 3 + press, kw, 11 - press, on ? 9 : 13, 2); t.text(key, tx + 3, ty - 1 + press, on ? 0 : 1); tx += kw + 2;
+  t.text(lb2, tx, ty, on ? 7 : 6);
 }
 export { plain, drawRich, viewScene };

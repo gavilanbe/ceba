@@ -131,7 +131,7 @@ export const Title = {
   *card(text, hold = 2.3) {
     S.card = { lines: text.split('\n'), t: 0, done: false };
     let e = 0, after = 0, last = -1;
-    for (;;) { const dt = yield; e += dt; const k = Math.floor(e * 26); if (!S.card.done && k !== last && k % 2 === 0) audio.sfx('blip', { pitch: 0.7, vol: 0.5 }); last = k; if (S.card.done) after += dt; if (after > hold) break; if (input.hit('a') || input.hit('start')) { if (S.card.done) break; S.card.t = 99; } }
+    for (;;) { const dt = yield; e += dt; const k = Math.floor(e * 26); if (!S.card.done && k !== last && k % 2 === 0) audio.sfx('blip', { pitch: 0.7, vol: 0.5 }); last = k; if (S.card.done) after += dt; if (after > hold) break; if (input.hit('a')) { if (S.card.done) break; S.card.t = 99; } }
     S.card = null;
   },
   *intro() {
