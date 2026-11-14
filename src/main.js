@@ -11,6 +11,7 @@ import { LEVELS } from './levels.js';
 import { ui, drawUI, UI, onionGauge, layerRow } from './ui.js';
 import { Menu } from './menu.js';
 import { Title } from './title.js';
+import { touch } from './touch.js';
 import { TXT } from './text.js';
 import { clamp, lerp, ease } from './px.js';
 import './ents.js';
@@ -81,7 +82,7 @@ G.onDeath = () => run(function* () {
   let t0 = 0, fill = 0; const max = G.save.maxLayers;
   UI.top = (t, dt) => {
     t0 += dt; onionGauge(t, W / 2, 58, Math.floor(fill), max, { core: 5, th: max > 4 ? 4 : 5 }); layerRow(t, Math.round(W / 2 - max * 6.5), 92, Math.floor(fill), max, false);
-    t.textC(TXT.MUERTE, W / 2, 114, 7); if (t0 > 1.4 && fill === 0) { t.textC('Te quedaste sin capas. Vuelves al último bancal.', W / 2, 128, 6); if (Math.floor(t0 * 2) % 2) t.textC('Espacio: volver a brotar', W / 2, 144, 13); }
+    t.textC(TXT.MUERTE, W / 2, 114, 7); if (t0 > 1.4 && fill === 0) { t.textC('Te quedaste sin capas. Vuelves al último bancal.', W / 2, 128, 6); if (Math.floor(t0 * 2) % 2) t.textC(input.touch ? 'Toca para volver a brotar' : 'Espacio: volver a brotar', W / 2, 144, 13); }
   };
   audio.jingle('gameover'); yield* wait(1.4);
   for (;;) { yield; if (input.hit('a') || input.hit('start')) break; }
@@ -153,6 +154,7 @@ function render(dt) {
     U.uDark.value = keep[0]; U.uFogR.value.set(keep[1], keep[2]); U.uAmb.value = keep[3]; U.uPL.value.forEach((p, i) => { p.w = pl[i]; });
   }
   ui.rgba(img.data); ctx.putImageData(img, 0, 0);
+  touch.draw(dt);
   input.flush();
 }
 function frame(dt) { update(dt); render(dt); }
@@ -224,12 +226,12 @@ input.onFirst = () => audio.init();
 
 if (!G.manual) {
   let last = performance.now();
-  const loop = now => { let dt = Math.min(0.05, (now - last) / 1000); last = now; frame(dt); requestAnimationFrame(loop); };
+  const loop = now => { let dt = Math.min(0.05, (now - last) / 1000); last = now; if (touch.blocked()) touch.draw(dt); else frame(dt); requestAnimationFrame(loop); };
   requestAnimationFrame(loop);
 } else frame(1 / 60);
 
 // herramientas de prueba (tools/shot.mjs)
-window.game = {
+window.game = { touch,
   G, input, fx, audio, player, cam,
   step(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) frame(dt); },
   key(code, on = true) { input.key(code, on); },

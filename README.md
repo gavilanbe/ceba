@@ -33,6 +33,9 @@ En Bulbo no llueve: toda el agua que hay la ha llorado alguien. Por eso las cebo
 | C | cámara a la espalda |
 | Q, E | pasar página en la pausa |
 | Intro | pausa |
+| Mantener Intro | saltar la intro |
+
+**En el móvil** (apaisado): el pulgar izquierdo mueve a Ceba con una palanca que aparece donde toques; a la derecha están los botones A, B, Z y los tres bolsillos (U, I, O); arrastrar por la derecha mueve la cámara y dos toques la ponen a la espalda; arriba, la lupa (zoom) y la pausa. En los diálogos basta con tocar la pantalla. `?touch` enseña el mando en el ordenador.
 
 ## Cómo está hecho
 

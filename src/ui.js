@@ -101,8 +101,11 @@ export function layerRow(t, x, y, n, max, crack, o = {}) {
 function parse(s) { const out = []; let c = null, wave = false; for (const ch of s) { if (ch === '*') { c = c === 'a' ? null : 'a'; continue; } if (ch === '_') { c = c === 'b' ? null : 'b'; continue; } if (ch === '^') { c = c === 'c' ? null : 'c'; continue; } if (ch === '~') { wave = !wave; continue; } out.push({ ch, c, wave }); } return out; }
 const plain = s => s.replace(/[*_~^]/g, '');
 // parte un texto en líneas que quepan en maxW píxeles
+// con el mando táctil, las teclas que nombran los textos pasan a ser los botones de la pantalla
+const KEYS_T = [[/\*espacio\*/gi, '*A*'], [/\*j\*/gi, '*B*'], [/\*mayús\*/gi, '*Z*'], [/\*intro\*/gi, '*pausa*']];
+export const touchKeys = s => input.touch ? KEYS_T.reduce((a, [r, b]) => a.replace(r, b), s) : s;
 export function wrap(s, maxW) {
-  const lines = [];
+  s = touchKeys(String(s)); const lines = [];
   for (const para of String(s).split('\n')) { let cur = ''; for (const w of para.split(' ')) { const nx = cur ? cur + ' ' + w : w; if (cur && textW(plain(nx)) > maxW) { lines.push(cur); cur = w; } else cur = nx; } lines.push(cur); }
   // las marcas abiertas en una línea siguen en la siguiente
   let open = ''; return lines.map(l => { const full = open + l; for (const m of ['*', '_', '^', '~']) { const n = (full.match(new RegExp('\\' + m, 'g')) || []).length; open = open.replace(m, ''); if (n % 2) open += m; } return full; });
@@ -131,14 +134,14 @@ export const UI = {
 G.ui = UI;
 
 // aviso de Candela (no bloquea)
-G.hint = (key, dur = 5.5) => { let txt = TXT[key] || key; if (Array.isArray(txt)) txt = txt.join(' '); txt = txt.replace(/@[^|]*\|/g, ''); S.hint = { lines: wrap(txt, 196), t: 0, dur }; if (G.candela) G.candela.call(); };
+G.hint = (key, dur = 5.5) => { let txt = (input.touch && TXT[key + '_T']) || TXT[key] || key; if (Array.isArray(txt)) txt = txt.join(' '); txt = txt.replace(/@[^|]*\|/g, ''); S.hint = { lines: wrap(txt, 196), t: 0, dur }; if (G.candela) G.candela.call(); };
 G.hintOnce = (id, key) => { if (flag('h_' + id)) return; flag('h_' + id, 1); G.hint(key); };
 G.toast = (text, icon) => { S.toasts.push({ text, icon, t: 0 }); audio.sfx('select'); };
 G.areaTitle = (title, sub) => { S.title = { title, sub, t: 0 }; };
 
 // diálogo (generador). who: nombre o null; key: clave de TXT, texto o lista de páginas
 G.say = function* (who, key, o = {}) {
-  let src = TXT[key] ?? key; if (typeof src === 'function') src = src();
+  let src = (input.touch && TXT[key + '_T']) || (TXT[key] ?? key); if (typeof src === 'function') src = src();
   const pages = Array.isArray(src) ? src : String(src).split('\n\n');
   const sp = G.speaker; const voice = o.voice ?? (sp ? sp.voice : 1.2);
   G.lock++; S.dlg = { name: who ?? (sp ? sp.name : null), lines: [], n: 0, t: 0, open: 0, done: false, tone: o.tone || 'papel' };
@@ -324,6 +327,7 @@ export function drawUI(dt) {
     // ── botones: B, A y los tres C, cada uno con su tecla debajo ──
     const pressed = b => input.down[b] && G.lock <= 0;
     const bx = 226, by = 18 + hy;
+    if (!input.touch) {
     button(t, bx, by, 9, 11, 3, null, null, pressed('b'));
     if (sv.items.hoja) t.spr(ICON.hoja, bx - 5, by - 6 + (pressed('b') ? 1 : 0)); else t.text3('B', bx - 1, by - 3, 3);
     t.text3O(KEYNAME.b, bx - 1, by + 12, 7, 0);
@@ -340,6 +344,7 @@ export function drawUI(dt) {
       if (id && ICON[id]) t.spr(ICON[id], CX[i] - 5, CY[i] - 6 + (pd ? 1 : 0), { map: p.layers <= 1 && id === 'mondador' ? { 8: 5, 14: 5, 6: 5, 2: 5 } : id === 'ajo' && !sv.ajos ? { 7: 5, 6: 5, 15: 5, 13: 5, 4: 5 } : null });
       if (id === 'ajo') { const n = String(sv.ajos || 0); t.rrect(CX[i] + 2, CY[i] - 12, textW3(n) + 4, 8, 0, 1); t.text3(n, CX[i] + 4, CY[i] - 11, sv.ajos ? 10 : 8); }
       t.text3O(KEYNAME['c' + (i + 1)], CX[i] - 1, CY[i] + 10, 7, 0);
+    }
     }
     if (sv.items.llave && G.level && G.level.name === 'cisterna' && !flag('jefe')) { t.rrect(W - 21, 40 + hy, 15, 15, 0, 2); t.rrect(W - 20, 41 + hy, 13, 13, 1, 2); t.spr(ICON.llave, W - 19, 42 + hy); }
   }
@@ -421,7 +426,7 @@ export function drawUI(dt) {
   }
   if (S.fade > 0.01) { const lv = S.fade * 17; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (BAYER[(y & 3) * 4 + (x & 3)] < lv - 0.5) t.d[y * W + x] = S.fadeC; }
   if (UI.top) UI.top(t, dt);
-  if (G.skip) skipBadge(t, G.skip, dt);
+  if (G.skip) skipBadge(t, G.skip, dt); else S.skipRect = null;
 }
 
 // «mantén Intro para saltar»: entra al tocar cualquier tecla durante la intro y se va sola.
@@ -430,10 +435,10 @@ const SK = { k: 0 };
 function skipBadge(t, sk, dt) {
   const want = sk.show > 0 || sk.hold > 0 ? 1 : 0;
   SK.k = clamp(SK.k + (want ? 1 : -1) * dt * 5); if (SK.k <= 0) return;
-  const key = input.usedPad ? 'Start' : 'Intro', lb1 = 'Mantén ', lb2 = ' para saltar';
-  const tw = textW(lb1) + textW(key) + 8 + textW(lb2), wd = tw + 30, hh = 17;
+  const key = input.touch ? null : input.usedPad ? 'Start' : 'Intro', lb1 = key ? 'Mantén ' : 'Mantén aquí', lb2 = ' para saltar';
+  const tw = textW(lb1) + (key ? textW(key) + 8 : 0) + textW(lb2), wd = tw + 30, hh = 17;
   const x = W - 4 - Math.round(wd * ease.out3(SK.k)) + Math.round((1 - SK.k) * 6), y = 3;
-  const hk = clamp(sk.hold / 0.85);
+  const hk = clamp(sk.hold / 0.85); S.skipRect = SK.k > 0.6 ? { x, y, w: wd, h: hh } : null;
   t.rrect(x - 1, y - 1, wd + 2, hh + 2, 0, 3); t.rrect(x, y, wd, hh, 1, 3); t.rect(x + 3, y + 1, wd - 6, 1, 5); t.rect(x + 2, y + hh - 2, wd - 4, 1, 0);
   // la cebollita: tres capas que se llenan en orden
   const cx = x + 10, cy = y + 8, cols = [9, 14, 7];
@@ -447,8 +452,8 @@ function skipBadge(t, sk, dt) {
   // texto, con la tecla en su chapa
   let tx = x + 21; const ty = y + 5, on = hk > 0;
   t.text(lb1, tx, ty, on ? 7 : 6); tx += textW(lb1);
-  const kw = textW(key) + 6, press = input.down.start ? 1 : 0;
-  t.rrect(tx, ty - 2 + press, kw, 11, 0, 2); t.rrect(tx, ty - 3 + press, kw, 11 - press, on ? 9 : 13, 2); t.text(key, tx + 3, ty - 1 + press, on ? 0 : 1); tx += kw + 2;
+  if (key) { const kw = textW(key) + 6, press = input.down.start ? 1 : 0;
+  t.rrect(tx, ty - 2 + press, kw, 11, 0, 2); t.rrect(tx, ty - 3 + press, kw, 11 - press, on ? 9 : 13, 2); t.text(key, tx + 3, ty - 1 + press, on ? 0 : 1); tx += kw + 2; }
   t.text(lb2, tx, ty, on ? 7 : 6);
 }
 export { plain, drawRich, viewScene };

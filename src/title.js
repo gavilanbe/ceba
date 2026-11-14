@@ -114,8 +114,8 @@ export const Title = {
         t.text(o, x + 7, y, sel ? 0 : 6);
       });
       if (k > 0.9) {
-        if (Math.floor(S.t * 1.6) % 2) t.textS('Pulsa Espacio', lx + 14, 106 + S.opts.length * 16 + 2, 7, 0);
-        const c1 = 'WASD mover · Flechas o ratón: cámara · Espacio acción', c2 = 'J la Hoja · Mayús fijar · U I O objetos · R zoom · Intro pausa';
+        if (Math.floor(S.t * 1.6) % 2) t.textS(input.touch ? 'Toca para empezar' : 'Pulsa Espacio', lx + 14, 106 + S.opts.length * 16 + 2, 7, 0);
+        const c1 = input.touch ? 'Izquierda: mover · Arrastra a la derecha: cámara' : 'WASD mover · Flechas o ratón: cámara · Espacio acción', c2 = input.touch ? 'A acción · B la Hoja · Z fijar · U I O objetos' : 'J la Hoja · Mayús fijar · U I O objetos · R zoom · Intro pausa';
         t.rect(0, H - 25, W, 25, 0); t.rect(0, H - 25, W, 1, 2); t.textC(c1, W / 2, H - 21, 13); t.textC(c2, W / 2, H - 11, 13);
       }
     }

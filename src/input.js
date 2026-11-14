@@ -14,6 +14,8 @@ export const input = {
   down: {}, pressed: {}, ax: 0, ay: 0, any: false, usedPad: false, onFirst: null,
   // cámara: giro pedido este fotograma (ratón en píxeles; palanca derecha y flechas en -1..1) y rueda
   mdx: 0, mdy: 0, cx: 0, cy: 0, wheel: 0, locked: false,
+  // mando táctil (touch.js): palanca analógica en tx, ty
+  touch: false, tOn: false, tx: 0, ty: 0,
   set(btn, on) { if (on && !this.down[btn]) { this.pressed[btn] = true; this.any = true; } this.down[btn] = on; },
   key(code, on) { const b = codes[code]; if (!b) return; held[code] = on; this.set(b, MAP[b].some(c => held[c]) || !!pad[b]); },
   poll() {
@@ -28,6 +30,7 @@ export const input = {
       if (gx || gy) { x = gx; y = gy; }
       this.cx = dz(gp.axes[2] || 0); this.cy = dz(gp.axes[3] || 0);
     } else { this.cx = 0; this.cy = 0; }
+    if (this.tOn) { x = this.tx; y = this.ty; }
     this.cx += (this.down.cr ? 1 : 0) - (this.down.cl ? 1 : 0); this.cy += (this.down.cd ? 1 : 0) - (this.down.cu ? 1 : 0);
     const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
     this.ax = x; this.ay = y;
@@ -42,7 +45,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('blur', () => input.clear());
   // ratón: un clic captura el puntero y desde entonces mueve la cámara; la rueda acerca y aleja
   const cv = () => document.getElementById('ui') || document.body;
-  window.addEventListener('mousedown', e => { if (!input.locked && cv().requestPointerLock && !input.noLock) { try { const r = cv().requestPointerLock(); if (r && r.catch) r.catch(() => { }); } catch (err) { } } else if (input.locked) { if (e.button === 0) input.set('b', true); if (e.button === 2) input.set('z', true); } });
+  window.addEventListener('mousedown', e => { if (input.touch) return; if (!input.locked && cv().requestPointerLock && !input.noLock) { try { const r = cv().requestPointerLock(); if (r && r.catch) r.catch(() => { }); } catch (err) { } } else if (input.locked) { if (e.button === 0) input.set('b', true); if (e.button === 2) input.set('z', true); } });
   window.addEventListener('mouseup', e => { if (e.button === 0 && !MAP.b.some(c => held[c]) && !pad.b) input.set('b', false); if (e.button === 2 && !MAP.z.some(c => held[c]) && !pad.z) input.set('z', false); });
   window.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('pointerlockchange', () => { input.locked = !!document.pointerLockElement; });

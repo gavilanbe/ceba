@@ -1,0 +1,22 @@
+// prueba táctil: móvil apaisado con toques reales por CDP
+import { chromium } from 'playwright';
+import { serve } from './serve.mjs';
+process.chdir(new URL('..', import.meta.url).pathname);
+const port = 8900 + Math.floor(Math.random() * 90), srv = await serve(port);
+const br = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const W0 = +(process.env.VW || 844), H0 = +(process.env.VH || 390);
+const ctxb = await br.newContext({ viewport: { width: W0, height: H0 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+const pg = await ctxb.newPage(); const errs = [];
+pg.on('pageerror', e => errs.push(String(e.stack || e))); pg.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+await pg.goto(`http://127.0.0.1:${port}/index.html?manual&mute`);
+await pg.waitForFunction('window.ready === true', null, { timeout: 15000 });
+const cdp = await ctxb.newCDPSession(pg);
+const T = async (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map((p, i) => ({ x: p[0], y: p[1], id: p[2] ?? i })) });
+globalThis.pg = pg; globalThis.T = T; globalThis.ev = c => pg.evaluate(c);
+const shots = []; let n = 0;
+globalThis.shot = async () => { const f = `/tmp/tt_${n++}.png`; await pg.screenshot({ path: f }); shots.push(f); };
+const script = (await import(process.argv[2])).default; await script();
+await br.close(); srv.close();
+if (errs.length) console.log('ERRORES', errs.slice(0, 5));
+const { execFileSync } = await import('node:child_process');
+if (shots.length === 1) (await import('node:fs')).copyFileSync(shots[0], process.argv[3]); else execFileSync('ffmpeg', ['-v', 'error', '-y', ...shots.flatMap(f => ['-i', f]), '-filter_complex', `xstack=inputs=${shots.length}:layout=${shots.map((_, i) => `${(i % 2) * W0 * 2}_${Math.floor(i / 2) * H0 * 2}`).join('|')}:fill=black`, '-frames:v', '1', process.argv[3]]);

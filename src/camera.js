@@ -89,7 +89,7 @@ export class Cam {
         const man = (input.down.r ? 1 : 0) - (input.down.l ? 1 : 0) + input.cx;
         const dyaw = -man * 2.7 * dt - input.mdx * 0.0034 * sens, dpit = (input.cy * 1.5 * dt + input.mdy * 0.0028 * sens) * inv;
         if (dyaw || dpit) { this.yaw += dyaw; this.pu = clamp(this.pu + dpit, -0.34, 0.72); this.manT = 0; }
-        else if (O.camAuto !== false && this.manT > (input.locked ? 3.5 : 0.9)) {
+        else if (O.camAuto !== false && this.manT > (input.locked || input.touch ? 3.5 : 0.9)) {
           // sola: se va poniendo a la espalda de Ceba cuando corre, y devuelve la inclinación a su sitio
           if (sp > 1 && p.state === 'free') { const d = angDiff(this.yaw, p.yaw + Math.PI); if (Math.abs(d) < 2.55) this.yaw += d * Math.min(1, 1.7 * dt * clamp(sp / 4)); }
           if (this.manT > 4) this.pu *= 1 - Math.min(1, 0.9 * dt);
