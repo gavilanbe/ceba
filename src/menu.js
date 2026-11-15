@@ -42,12 +42,13 @@ export const Menu = {
     } else if (S.page === 2) {
       if (mvy) { S.eco = (S.eco + mvy + ECO.length) % ECO.length; audio.sfx('menuMove'); S.viewKey = null; }
     } else if (S.page === 3) {
-      if (mvy) { S.opt = (S.opt + mvy + 5) % 5; audio.sfx('menuMove'); }
+      if (mvy) { S.opt = (S.opt + mvy + 6) % 6; audio.sfx('menuMove'); }
       if (input.hit('a')) {
         if (S.opt === 0) { audio.muted = !audio.muted; audio.sfx('select'); }
         else if (S.opt === 1) { G.opt.camAuto = G.opt.camAuto === false; saveOpt(); audio.sfx('select'); }
         else if (S.opt === 2) { G.opt.invY = !G.opt.invY; saveOpt(); audio.sfx('select'); }
-        else if (S.opt === 3) { sv.layers = G.player.layers; sv.crack = G.player.crack; writeSave(); audio.sfx('secret'); S.saved = 1.5; }
+        else if (S.opt === 3) { G.opt.rumble = G.opt.rumble === false; saveOpt(); audio.sfx('select'); if (G.opt.rumble) input.rumble(0.6, 0.6, 160); }
+        else if (S.opt === 4) { sv.layers = G.player.layers; sv.crack = G.player.crack; writeSave(); audio.sfx('secret'); S.saved = 1.5; }
         else { sv.layers = G.player.layers; writeSave(); audio.sfx('select'); Menu.close(); audio.music(null, { fade: 0.4 }); run(function* () { G.lock++; yield* G.fade(1, 0.5, 0); G.lock--; G.mode = 'title'; UI.S.title = null; UI.S.hint = null; Title.enter(); yield* G.fade(0, 0.5, 0); }); }
       }
     }
@@ -77,7 +78,7 @@ export const Menu = {
     // etiqueta de la capa elegida, entre Q y E
     const P0 = PAGES[S.page];
     tag(t, cx, cy + 53, P0.layer, P0.c, S.page >= 2 ? 1 : 0, P0.d);
-    for (const [dx, key, ar] of [[-50, 'Q', '◀'], [50, 'E', '▶']]) { button(t, cx + dx, cy + 58, 6, 13, 5, null); t.text3(key, cx + dx - 1, cy + 55, 7); }
+    for (const [dx, key, ar] of [[-50, KEYNAME.l, '◀'], [50, KEYNAME.r, '▶']]) { button(t, cx + dx, cy + 58, 6, 13, 5, null); t.text3(key, cx + dx - (key.length > 1 ? 3 : 1), cy + 55, 7); }
     // misión
     const ob = wrap(objective(), 102), oy = 136 + Math.round((1 - k) * 50);
     panel(t, 6, oy, 112, 40, 'oscuro'); t.rect(7, oy + 1, 110, 9, 2); t.text('MISIÓN', 11, oy + 2, 14);
@@ -183,16 +184,16 @@ export const Menu = {
     } else {
       // ── Ceba ──
       const vx = x0 + 2, vy = y0 + 2;
-      frame(vx, vy, 68, 78);
-      if (live) { t.erase(vx, vy, 68, 78); if (S.viewKey !== 'ceba') { S.viewKey = 'ceba'; setView(() => { const c = makeCeba(); c.setHoja(!!sv.items.hoja); c.setLayers(p.layers); c.handL.position.set(-0.6, 0.4, 0.1); c.handR.position.set(0.6, 0.4, 0.1); c.footL.position.set(0.2, 0, 0); c.footR.position.set(-0.2, 0, 0); c.shadow.visible = false; c.root.scale.setScalar(p.scale); return c; }, { sky: [15, 12, 12, 12], zoom: 0.8, tilt: 0.25 }); } const v = UI.view; if (v) { v.x = vx; v.y = vy; v.w = 68; v.h = 78; v.spin.rotation.y += dt * 1.2; } }
-      else t.rect(vx, vy, 68, 78, 12);
+      frame(vx, vy, 68, 70);
+      if (live) { t.erase(vx, vy, 68, 70); if (S.viewKey !== 'ceba') { S.viewKey = 'ceba'; setView(() => { const c = makeCeba(); c.setHoja(!!sv.items.hoja); c.setLayers(p.layers); c.handL.position.set(-0.6, 0.4, 0.1); c.handR.position.set(0.6, 0.4, 0.1); c.footL.position.set(0.2, 0, 0); c.footR.position.set(-0.2, 0, 0); c.shadow.visible = false; c.root.scale.setScalar(p.scale); return c; }, { sky: [15, 12, 12, 12], zoom: 0.8, tilt: 0.25 }); } const v = UI.view; if (v) { v.x = vx; v.y = vy; v.w = 68; v.h = 70; v.spin.rotation.y += dt * 1.2; } }
+      else t.rect(vx, vy, 68, 70, 12);
       const sx = x0 + 80, sw = CW - 80; let yy = y0;
       t.text('Ceba, la dulce', sx, yy, 8); yy += 13;
       t.text(`Capas: ${p.layers} de ${p.maxLayers}`, sx, yy, 4); layerRow(t, sx + 1, yy + 11, p.layers, p.maxLayers, p.crack, { sp: 12 }); yy += 27; t.text('Cada capa: 2 golpes', sx, yy, 1); yy += 13;
       const cried = Object.keys(sv.flags).filter(f => f.startsWith('lloro_')).reduce((a, f) => a + sv.flags[f], 0);
       for (const [a, b] of [['Pepitas de oro', `${sv.pepitas || 0}`], ['Vecinos llorados', cried]]) { t.text(a, sx, yy, 4); t.textR(String(b), sx + sw, yy, 1); yy += 10; }
-      yy = y0 + 88; t.rect(x0, yy - 5, CW, 1, 9);
-      const opts = [`Sonido: ${audio.muted ? 'no' : 'sí'}`, `Cámara: ${G.opt.camAuto !== false ? 'te sigue sola' : 'solo a mano'}`, `Mirar arriba/abajo: ${G.opt.invY ? 'invertido' : 'normal'}`, S.saved > 0 ? '¡Guardado!' : 'Guardar partida', 'Salir al título'];
+      yy = y0 + 81; t.rect(x0, yy - 5, CW, 1, 9);
+      const opts = [`Sonido: ${audio.muted ? 'no' : 'sí'}`, `Cámara: ${G.opt.camAuto !== false ? 'te sigue sola' : 'solo a mano'}`, `Mirar arriba/abajo: ${G.opt.invY ? 'invertido' : 'normal'}`, `Vibración del mando: ${G.opt.rumble !== false ? 'sí' : 'no'}`, S.saved > 0 ? '¡Guardado!' : 'Guardar partida', 'Salir al título'];
       if (S.saved > 0) S.saved -= dt;
       opts.forEach((o, i) => { const sel = i === S.opt, y = yy + i * 9, ow = textW(o) + 12; if (sel) { t.rrect(x0 + 13, y - 3, ow + 2, 13, 0, 2); t.rrect(x0 + 14, y - 2, ow, 11, 8, 2); t.rect(x0 + 15, y + 8, ow - 2, 1, 2); t.spr(ICON.lagrima, x0 + 2 + Math.round(Math.sin(S.t * 6) * 1.5), y - 2); } t.text(o, x0 + 20, y, sel ? 7 : 1); });
     }

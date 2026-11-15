@@ -906,6 +906,7 @@ export const audio = {
   },
 
   sfx(name, opts) {
+    if (this.onSfx) this.onSfx(name);
     if (ctx && HSFX[name]) {
       try {
         const o = opts || {}, src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = HSFX[name]; src.playbackRate.value = o.pitch || 1; g.gain.value = (o.vol ?? 1) * 0.55;

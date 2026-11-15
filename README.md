@@ -37,6 +37,8 @@ En Bulbo no llueve: toda el agua que hay la ha llorado alguien. Por eso las cebo
 
 **En el móvil** (apaisado): el pulgar izquierdo mueve a Ceba con una palanca que aparece donde toques; a la derecha están los botones A, B, Z y los tres bolsillos (U, I, O); arrastrar por la derecha mueve la cámara y dos toques la ponen a la espalda; arriba, la lupa (zoom) y la pausa. En los diálogos basta con tocar la pantalla. `?touch` enseña el mando en el ordenador.
 
+**Con mando**: vale cualquiera que reconozca el navegador (Xbox, PlayStation, Switch, genéricos); se conecta, se pulsa un botón y los rótulos de pantalla pasan a los de su marca. Palanca izquierda o cruceta para moverse y para los menús, palanca derecha para la cámara (pulsarla la pone a la espalda; pulsar la izquierda, zoom), A acción, X la Hoja, LT fijar, Y · B · RT los bolsillos, LB · RB giran la cámara y pasan página en la pausa, START pausa. En los de Nintendo la A es la de la derecha. Vibra con los golpes (se quita en la pausa).
+
 ## Cómo está hecho
 
 Web sin build (módulos ES y three.js en `vendor/`). Cada modelo es una malla de pocos lados con una hoja de textura de 128×128 pintada por código en paleta PICO-8; la luz es plana por cara y la sombra se hace por tramado. `taller.html?m=ceba` enseña cualquier modelo girando junto a su hoja de textura.

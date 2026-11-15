@@ -82,7 +82,7 @@ G.onDeath = () => run(function* () {
   let t0 = 0, fill = 0; const max = G.save.maxLayers;
   UI.top = (t, dt) => {
     t0 += dt; onionGauge(t, W / 2, 58, Math.floor(fill), max, { core: 5, th: max > 4 ? 4 : 5 }); layerRow(t, Math.round(W / 2 - max * 6.5), 92, Math.floor(fill), max, false);
-    t.textC(TXT.MUERTE, W / 2, 114, 7); if (t0 > 1.4 && fill === 0) { t.textC('Te quedaste sin capas. Vuelves al último bancal.', W / 2, 128, 6); if (Math.floor(t0 * 2) % 2) t.textC(input.touch ? 'Toca para volver a brotar' : 'Espacio: volver a brotar', W / 2, 144, 13); }
+    t.textC(TXT.MUERTE, W / 2, 114, 7); if (t0 > 1.4 && fill === 0) { t.textC('Te quedaste sin capas. Vuelves al último bancal.', W / 2, 128, 6); if (Math.floor(t0 * 2) % 2) t.textC(input.touch ? 'Toca para volver a brotar' : input.usedPad ? `${input.pad.a}: volver a brotar` : 'Espacio: volver a brotar', W / 2, 144, 13); }
   };
   audio.jingle('gameover'); yield* wait(1.4);
   for (;;) { yield; if (input.hit('a') || input.hit('start')) break; }
@@ -223,6 +223,15 @@ G.wipe = wipeSave;
 G.save = newSave();
 G.mode = 'title'; Title.enter();
 input.onFirst = () => audio.init();
+// ───────── mando ─────────
+// aviso al conectarlo; si se desconecta el que se estaba usando en mitad de la partida, pausa
+input.onPad = (on, name, wasActive) => {
+  audio.init(); G.toast(on ? `${name} conectado` : `${name} desconectado`);
+  if (!on && wasActive && G.mode === 'play' && G.lock <= 0 && !G.cine && player.state !== 'dead') Menu.open();
+};
+// vibración: va con los efectos de sonido que ya marcan cada golpe
+const RUMBLE = { hurt: [0.7, 0.5, 170], peel: [1, 0.7, 320], die: [1, 1, 650], boom: [1, 1, 380], hitHard: [0.35, 0.5, 80], hit: [0.12, 0.3, 45], bossHit: [0.6, 0.6, 140], bossRoar: [0.8, 0.4, 520], bossDie: [1, 1, 900], land: [0.15, 0, 40], crumble: [0.7, 0.3, 300], chestOpen: [0.2, 0.4, 160], itemBig: [0.3, 0.5, 240], bounce: [0.2, 0.3, 60], shell: [0.4, 0.5, 110], emerge: [0.6, 0.3, 260], burrow: [0.5, 0.2, 260] };
+audio.onSfx = name => { const r = RUMBLE[name]; if (r && G.opt.rumble !== false && G.mode !== 'title') input.rumble(r[0], r[1], r[2]); };
 
 if (!G.manual) {
   let last = performance.now();

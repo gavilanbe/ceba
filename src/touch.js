@@ -156,6 +156,7 @@ function wake() {
   try { const p = (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el, { navigationUI: 'hide' }); if (p && p.then) p.then(() => { try { screen.orientation.lock('landscape').catch(() => { }); } catch (e) { } setTimeout(layout, 300); }).catch(() => { }); } catch (e) { }
 }
 // el teclado de verdad apaga el mando táctil (tabletas con teclado)
+input.padWake = () => { if (!forced && input.touch) { input.touch = false; for (const f of fingers.keys()) fingers.delete(f); endStick(); } };
 addEventListener('keydown', e => { if (!forced && input.touch && !e.repeat && e.isTrusted) { input.touch = false; for (const f of fingers.keys()) fingers.delete(f); endStick(); } });
 
 // ── dibujo ──

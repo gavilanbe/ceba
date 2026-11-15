@@ -32,6 +32,6 @@ export function* all(...gens) { let live = gens.map(g => ({ g, d: false })); let
 
 // opciones del jugador (no van con la partida)
 const OKEY = 'ceba.opt.1';
-G.opt = { camAuto: true, invY: false, sens: 1 };
+G.opt = { camAuto: true, invY: false, sens: 1, rumble: true };
 try { Object.assign(G.opt, JSON.parse(localStorage.getItem(OKEY)) || {}); } catch (e) { }
 export function saveOpt() { try { localStorage.setItem(OKEY, JSON.stringify(G.opt)); } catch (e) { } }

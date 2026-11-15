@@ -103,7 +103,11 @@ const plain = s => s.replace(/[*_~^]/g, '');
 // parte un texto en líneas que quepan en maxW píxeles
 // con el mando táctil, las teclas que nombran los textos pasan a ser los botones de la pantalla
 const KEYS_T = [[/\*espacio\*/gi, '*A*'], [/\*j\*/gi, '*B*'], [/\*mayús\*/gi, '*Z*'], [/\*intro\*/gi, '*pausa*']];
-export const touchKeys = s => input.touch ? KEYS_T.reduce((a, [r, b]) => a.replace(r, b), s) : s;
+// con un mando, los de su marca
+const padKeys = () => { const P = input.pad; return [[/\*espacio\*/gi, `*${P.a}*`], [/\*j\*/gi, `*${P.b}*`], [/\*mayús\*/gi, `*${P.z}*`], [/\*intro\*/gi, `*${P.start}*`], [/\*u · i · o\*/gi, `*${P.c1} · ${P.c2} · ${P.c3}*`], [/\*u\*/gi, `*${P.c1}*`], [/\*i\*/gi, `*${P.c2}*`], [/\*o\*/gi, `*${P.c3}*`]]; };
+export const touchKeys = s => input.touch ? KEYS_T.reduce((a, [r, b]) => a.replace(r, b), s) : input.usedPad ? padKeys().reduce((a, [r, b]) => a.replace(r, b), s) : s;
+// clave de texto según el aparato: X_T para el táctil, X_P para el mando
+export const devTxt = key => (input.touch && TXT[key + '_T']) || (!input.touch && input.usedPad && TXT[key + '_P']) || null;
 export function wrap(s, maxW) {
   s = touchKeys(String(s)); const lines = [];
   for (const para of String(s).split('\n')) { let cur = ''; for (const w of para.split(' ')) { const nx = cur ? cur + ' ' + w : w; if (cur && textW(plain(nx)) > maxW) { lines.push(cur); cur = w; } else cur = nx; } lines.push(cur); }
@@ -134,14 +138,14 @@ export const UI = {
 G.ui = UI;
 
 // aviso de Candela (no bloquea)
-G.hint = (key, dur = 5.5) => { let txt = (input.touch && TXT[key + '_T']) || TXT[key] || key; if (Array.isArray(txt)) txt = txt.join(' '); txt = txt.replace(/@[^|]*\|/g, ''); S.hint = { lines: wrap(txt, 196), t: 0, dur }; if (G.candela) G.candela.call(); };
+G.hint = (key, dur = 5.5) => { let txt = devTxt(key) || TXT[key] || key; if (Array.isArray(txt)) txt = txt.join(' '); txt = txt.replace(/@[^|]*\|/g, ''); S.hint = { lines: wrap(txt, 196), t: 0, dur }; if (G.candela) G.candela.call(); };
 G.hintOnce = (id, key) => { if (flag('h_' + id)) return; flag('h_' + id, 1); G.hint(key); };
 G.toast = (text, icon) => { S.toasts.push({ text, icon, t: 0 }); audio.sfx('select'); };
 G.areaTitle = (title, sub) => { S.title = { title, sub, t: 0 }; };
 
 // diálogo (generador). who: nombre o null; key: clave de TXT, texto o lista de páginas
 G.say = function* (who, key, o = {}) {
-  let src = (input.touch && TXT[key + '_T']) || (TXT[key] ?? key); if (typeof src === 'function') src = src();
+  let src = devTxt(key) || (TXT[key] ?? key); if (typeof src === 'function') src = src();
   const pages = Array.isArray(src) ? src : String(src).split('\n\n');
   const sp = G.speaker; const voice = o.voice ?? (sp ? sp.voice : 1.2);
   G.lock++; S.dlg = { name: who ?? (sp ? sp.name : null), lines: [], n: 0, t: 0, open: 0, done: false, tone: o.tone || 'papel' };
@@ -435,7 +439,7 @@ const SK = { k: 0 };
 function skipBadge(t, sk, dt) {
   const want = sk.show > 0 || sk.hold > 0 ? 1 : 0;
   SK.k = clamp(SK.k + (want ? 1 : -1) * dt * 5); if (SK.k <= 0) return;
-  const key = input.touch ? null : input.usedPad ? 'Start' : 'Intro', lb1 = key ? 'Mantén ' : 'Mantén aquí', lb2 = ' para saltar';
+  const key = input.touch ? null : input.usedPad ? input.pad.start : 'Intro', lb1 = key ? 'Mantén ' : 'Mantén aquí', lb2 = ' para saltar';
   const tw = textW(lb1) + (key ? textW(key) + 8 : 0) + textW(lb2), wd = tw + 30, hh = 17;
   const x = W - 4 - Math.round(wd * ease.out3(SK.k)) + Math.round((1 - SK.k) * 6), y = 3;
   const hk = clamp(sk.hold / 0.85); S.skipRect = SK.k > 0.6 ? { x, y, w: wd, h: hh } : null;

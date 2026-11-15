@@ -3,7 +3,7 @@
 import { THREE, MB, mat, texFrom, makeSky, U, W, H } from './gfx.js';
 import { Tex, T, clamp, lerp, ease, textW, rng } from './px.js';
 import { G, run, wait, tween, all, flag, loadSave } from './state.js';
-import { input } from './input.js';
+import { input, PADS } from './input.js';
 import { audio } from './audio.js';
 import { UI, ICON, wrap, drawRich, plain, panel, header } from './ui.js';
 import { TXT } from './text.js';
@@ -157,7 +157,7 @@ function build() {
 
 const LVNAME = { villa: 'Villa Ristra', cisterna: 'La Cisterna', pulpa: 'El Raigal', raicera: 'La Raicera' };
 const CX = 92, LX = 8, LY = -7, RIB_Y = 80, MENU_Y = 103;
-const S = { t: 0, sel: 0, opts: [], phase: 'in', card: null, zoom: 0, out: 0, mt: 0, hits: [], sub: null, st: 0, yes: 0, save: null, blink: 0, drip: 0, lastK: -1 };
+const S = { kp: 0, t: 0, sel: 0, opts: [], phase: 'in', card: null, zoom: 0, out: 0, mt: 0, hits: [], sub: null, st: 0, yes: 0, save: null, blink: 0, drip: 0, lastK: -1 };
 const T_READY = 1.85;
 const KEYS = [['WASD', 'Mover'], ['Espacio', 'Acción · rodar'], ['J', 'La Hoja'], ['Mayús', 'Fijar objetivo'], ['U · I · O', 'Objetos'], ['Flechas o ratón', 'Cámara'], ['R · C', 'Zoom · a la espalda'], ['Intro', 'Pausa']];
 const KEYS_T = [['Palanca izquierda', 'Mover'], ['A', 'Acción · rodar'], ['B', 'La Hoja'], ['Z', 'Fijar objetivo'], ['U · I · O', 'Objetos'], ['Arrastrar a la derecha', 'Cámara'], ['Lupa', 'Zoom'], ['Dos toques', 'A la espalda']];
@@ -220,13 +220,16 @@ export const Title = {
     cam.position.set(tx + Math.sin(cy) * Math.cos(ce) * (D - op * 2.2), ty + Math.sin(ce) * (D - op * 2.2), tz + Math.cos(cy) * Math.cos(ce) * (D - op * 2.2)); cam.lookAt(tx, ty, tz);
     cam.updateMatrixWorld(); _v.set(0, 0.2, 0).project(cam); sky.material.uniforms.uCen.value.set((_v.x * 0.5 + 0.5) * W * 2, (_v.y * 0.5 + 0.5) * H * 2); sky.material.uniforms.uGlow.value = Math.sin(t * 2.2) * 0.012 + S.pulse * 0.16;
     if (G.lock > 0 || S.phase === 'go' || S.phase === 'cards') return;
-    const ok = () => input.hit('a') || input.hit('start'), back = () => input.hit('b');
+    const ok = () => input.hit('a') || input.hit('start'), back = () => input.hit('b') || input.hit('back');
     if (S.phase === 'in') { if (t > T_READY) S.phase = 'press'; else if (t > 0.3 && ok()) { S.t = T_READY; S.phase = 'press'; } return; }
     if (S.phase === 'press') { if (ok()) { audio.init(); audio.sfx('select'); S.phase = 'menu'; S.mt = 0; } return; }
     S.mt += dt;
     if (S.sub) {
       S.st += dt;
-      if (S.sub === 'keys') { if (ok() || back()) { audio.sfx('cancel'); S.sub = null; } }
+      if (S.sub === 'keys') {
+        const d = (input.hit('right') ? 1 : 0) - (input.hit('left') ? 1 : 0); if (d && !input.touch) { S.kp = (S.kp + d + 2) % 2; S.st = 0.12; audio.sfx('menuMove'); }
+        if (ok() || back()) { audio.sfx('cancel'); S.sub = null; }
+      }
       else {
         if (input.hit('left') || input.hit('right') || input.hit('up') || input.hit('down')) { S.yes ^= 1; audio.sfx('menuMove'); }
         if (back()) { audio.sfx('cancel'); S.sub = null; }
@@ -241,7 +244,7 @@ export const Title = {
   },
   pick() {
     const o = S.opts[S.sel]; audio.init();
-    if (o === 'Controles') { audio.sfx('select'); S.sub = 'keys'; S.st = 0; }
+    if (o === 'Controles') { audio.sfx('select'); S.sub = 'keys'; S.st = 0; S.kp = input.usedPad ? 1 : 0; }
     else if (o === 'Continuar') Title.start(true);
     else if (S.save) { audio.sfx('select'); S.sub = 'new'; S.st = 0; S.yes = 0; }
     else Title.start(false);
@@ -292,7 +295,7 @@ export const Title = {
     S.hits = [];
     // ── «pulsa para empezar» ──
     if (S.phase === 'press' || (S.phase === 'in' && T0 > 1.7)) {
-      const msg = input.touch ? 'Toca para empezar' : 'Pulsa Espacio', y = 122 + Math.round(Math.sin(T0 * 2.4) * 1.5), w = textW(msg);
+      const msg = input.touch ? 'Toca para empezar' : input.usedPad ? `Pulsa ${input.pad.a}` : 'Pulsa Espacio', y = 122 + Math.round(Math.sin(T0 * 2.4) * 1.5), w = textW(msg);
       if (Math.floor(T0 * 1.5) % 4 !== 3) { t.textO(msg, CX - (w >> 1), y, 7, 0); t.spr(ICON.lagrima, CX - (w >> 1) - 13, y - 1); t.spr(ICON.lagrima, CX + (w >> 1) + 6, y - 1); }
     }
     // ── el menú ──
@@ -316,10 +319,15 @@ export const Title = {
     if (S.sub === 'keys') Title.drawKeys(t); else if (S.sub === 'new') Title.drawConfirm(t);
   },
   drawKeys(t) {
-    const rows = input.touch ? KEYS_T : KEYS, w = 214, h = 34 + rows.length * 12, x = (W - w) >> 1, y = Math.round((H - h) / 2 + (1 - ease.back(clamp(S.st / 0.25))) * 14), mid = x + (input.touch ? 118 : 96);
+    // tres hojas: táctil (sola), teclado y mando; con ◀ ▶ se pasa de una a otra
+    const pg = input.touch ? 2 : S.kp, P = input.hasPad ? input.pad : PADS.otro;
+    const rows = pg === 2 ? KEYS_T : pg === 0 ? KEYS : [['Palanca izquierda o cruceta', 'Mover'], [P.a, 'Acción · rodar'], [P.b, 'La Hoja'], [P.z, 'Fijar objetivo'], [`${P.c1} · ${P.c2} · ${P.c3}`, 'Objetos'], ['Palanca derecha', 'Cámara'], [`${P.l} · ${P.r}`, 'Girar la cámara'], ['Pulsar las palancas', 'Zoom · a la espalda'], [P.start, 'Pausa']];
+    const w = 232, h = 34 + rows.length * 12 + (pg === 1 ? 10 : 0), x = (W - w) >> 1, y = Math.round((H - h) / 2 + (1 - ease.back(clamp(S.st / 0.25))) * 14), mid = x + (pg === 0 ? 100 : 136);
     panel(t, x, y, w, h, 'papel'); header(t, x + 1, y + 1, w - 2, 'Controles');
+    if (pg < 2) { const lb = pg ? (input.hasPad ? P.name : 'Mando') : 'Teclado y ratón', lw = textW(lb), rx = x + w - 12; t.text('▶', rx - 4, y + 3, 10); t.text(lb, rx - 9 - lw, y + 3, 7); t.text('◀', rx - 16 - lw, y + 3, 10); }
     rows.forEach(([k, a], i) => { const yy = y + 19 + i * 12; if (i % 2) t.rect(x + 3, yy - 3, w - 6, 12, 7); t.textR(k, mid - 6, yy, 8); t.rect(mid, yy + 2, 2, 2, 9); t.text(a, mid + 8, yy, 1); });
-    t.textC(input.touch ? 'Toca para volver' : 'Espacio: volver', W / 2, y + h - 12, 4);
+    if (pg === 1) t.textC(input.hasPad ? 'Listo: se usa el último mando que toques.' : 'Conecta un mando y pulsa un botón.', W / 2, y + h - 24, input.hasPad ? 3 : 2);
+    t.textC(input.touch ? 'Toca para volver' : input.usedPad ? `${P.a}: volver` : 'Espacio: volver', W / 2, y + h - 12, 4);
   },
   drawConfirm(t) {
     const w = 196, h = 62, x = (W - w) >> 1, y = Math.round((H - h) / 2 + (1 - ease.back(clamp(S.st / 0.25))) * 14);
