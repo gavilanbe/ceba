@@ -167,7 +167,7 @@ export const Title = {
   scene, cam, S,
   enter() {
     build(); const sv = loadSave(); S.save = sv;
-    S.t = 0; S.phase = 'in'; S.out = 0; S.mt = 0; S.sub = null; S.zoom = 0; S.card = null; S.lastK = -1; S.drip = 0; S.dive = 0; S.flashT = 0; S.pulse = 0;
+    S.t = 0; S.phase = 'in'; S.out = 0; S.mt = 0; S.sub = null; S.zoom = 0; S.card = null; S.lastK = -1; S.drip = 0; S.dive = 0; S.flashT = 0; S.flashK = 0; S.pulse = 0;
     ceba.root.visible = true; ceba.root.position.copy(seat0.p); ceba.root.quaternion.copy(seat0.q); ceba.root.scale.setScalar(1); ceba.tilt.rotation.set(0, 0, 0);
     S.opts = sv ? ['Continuar', 'Partida nueva', 'Controles'] : ['Partida nueva', 'Controles']; S.sel = 0;
     // Ceba sale como va en la partida guardada

@@ -235,7 +235,7 @@ audio.onSfx = name => { const r = RUMBLE[name]; if (r && G.opt.rumble !== false 
 
 if (!G.manual) {
   let last = performance.now();
-  const loop = now => { let dt = Math.min(0.05, (now - last) / 1000); last = now; if (touch.blocked()) touch.draw(dt); else frame(dt); requestAnimationFrame(loop); };
+  const loop = now => { let dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; if (touch.blocked()) touch.draw(dt); else frame(dt); requestAnimationFrame(loop); };
   requestAnimationFrame(loop);
 } else frame(1 / 60);
 
