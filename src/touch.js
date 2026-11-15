@@ -139,11 +139,7 @@ function onUp(e) {
   }
   if (G.mode !== 'menu') tapA();
 }
-function titleTap(gx, gy) {
-  const S = Title.S; if (S.phase !== 'menu') { tapA(); return; }
-  S.opts.forEach((o, i) => { const y = 106 + i * 16; if (gy >= y - 6 && gy <= y + 11 && gx >= 20 && gx <= 60 + textW(o)) { if (S.sel !== i) S.sel = i; } });
-  tapA();
-}
+function titleTap(gx, gy) { if (Title.tap(gx, gy)) tapA(); }
 cv.addEventListener('pointerdown', onDown, { passive: false });
 cv.addEventListener('pointermove', onMove, { passive: false });
 cv.addEventListener('pointerup', onUp, { passive: false });
